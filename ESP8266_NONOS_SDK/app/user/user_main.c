@@ -18,8 +18,7 @@
 #include "smartconfig.h"
 #include "airkiss.h"
 #include "driver/uart.h"
-
-#include "driver/uart.h"
+#include "user_json.h"
 #include "framework/apps/user_plug.h"
 #include "framework/apps/smart_config.h"
 #include "framework/device/flash_param.h"
@@ -40,6 +39,93 @@ static void ICACHE_FLASH_ATTR led_status_center(void *arg);
 static void ICACHE_FLASH_ATTR system_secs_center(void *arg);
 static void ICACHE_FLASH_ATTR key_short_press(void);
 static void ICACHE_FLASH_ATTR key_long_press(void);
+
+
+LOCAL int ICACHE_FLASH_ATTR version_get(struct jsontree_context *js_ctx)
+{
+    const char *path = jsontree_path_name(js_ctx, js_ctx->depth - 1);
+    char string[32];
+
+    if (os_strncmp(path, "hardware", 8) == 0) {
+        os_sprintf(string, "0.1");
+    }
+
+    jsontree_write_string(js_ctx, string);
+
+    return 0;
+}
+
+LOCAL struct jsontree_callback version_callback =
+                                JSONTREE_CALLBACK(version_get, NULL);
+
+JSONTREE_OBJECT(INFOTree,
+                JSONTREE_PAIR("info", &version_callback));
+
+
+
+LOCAL int ICACHE_FLASH_ATTR msg_set(struct jsontree_context *js_ctx, struct jsonparse_state *parse)
+{
+    int type;
+    while ((type = jsonparse_next(parse)) != 0)
+    {
+        if(jsonparse_strcmp_value(parse,"v") == 0)
+        {
+            u8 version=0;
+            jsonparse_next(parse);
+            jsonparse_next(parse);
+            version = jsonparse_get_value_as_int(parse);
+            os_printf("version : %d \r\n",version);
+        }
+    }
+    return 0;
+}
+
+struct jsontree_callback msg_callback = JSONTREE_CALLBACK(NULL, msg_set);
+JSONTREE_OBJECT(msg_tree,
+JSONTREE_PAIR("v",&msg_callback));
+
+
+LOCAL int ICACHE_FLASH_ATTR msg_set2(struct jsontree_context *js_ctx, struct jsonparse_state *parse)
+{
+    int type;
+    while ((type = jsonparse_next(parse)) != 0)
+    {
+        if(jsonparse_strcmp_value(parse,"v") == 0)
+        {
+            u8 version=0;
+            jsonparse_next(parse);
+            jsonparse_next(parse);
+            version = jsonparse_get_value_as_int(parse);
+            os_printf("version : %d \r\n",version);
+        }
+    }
+    return 0;
+}
+
+struct jsontree_callback msg_callback2 = JSONTREE_CALLBACK(NULL, msg_set2);
+JSONTREE_OBJECT(msg_tree2, JSONTREE_PAIR("v",&msg_callback2));
+JSONTREE_OBJECT(msg_tree_lv2, JSONTREE_PAIR("v2",&msg_tree2));
+
+int json_test(void)
+{
+    char json_buffer[32] = {0};
+    json_ws_send((struct jsontree_value *)&INFOTree, "info", json_buffer);
+    os_printf("[JSON]:%s \n", json_buffer);
+
+    char * parse_string = "{\"v\":\"100\"}";
+    struct jsontree_context js;
+    jsontree_setup(&js, (struct jsontree_value *)&msg_tree, json_putchar);
+    json_parse(&js, parse_string);
+
+    os_printf("[JSON]:%s \n", json_buffer);
+
+
+    char * parse_string2 = "{\"v\":{\"v2\":\"200\"}}";
+    jsontree_setup(&js, (struct jsontree_value *)&msg_tree_lv2, json_putchar);
+    json_parse(&js, parse_string2);
+}
+
+
 
 void user_rf_pre_init(void)
 {
