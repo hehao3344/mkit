@@ -24,6 +24,7 @@
 #include "framework/device/flash_param.h"
 
 #include "framework/crypto/rsa_api.h"
+#include "framework/crypto/crypto_api.h"
 
 static os_timer_t status_timer;
 static uint8      led_status = 0;
@@ -138,8 +139,11 @@ void user_init(void)
     uart_init(BIT_RATE_115200, BIT_RATE_115200);
     os_printf("SDK version:%s\n", system_get_sdk_version());
     
-    rsa_api_unit_test();
+    // rsa_api_unit_test();
+    crypto_api_unit_test();
     
+    return;
+
     struct station_config station_conf;
     wifi_station_get_config(&station_conf);
     os_printf(MACSTR ",%s,%s \n", MAC2STR(station_conf.bssid), station_conf.password, station_conf.ssid);
@@ -195,7 +199,7 @@ void user_init(void)
         os_timer_setfn(&sys_timer, (os_timer_func_t *)system_secs_center, NULL);
         os_timer_arm(&sys_timer, 1000, 1); // 0 at once, 1 restart auto.
 
-        /* 打开开关 */
+        /* 鎵撳紑寮�鍏� */
         switch_level = 0x01;
         user_switch_output(1);
     }
@@ -226,7 +230,7 @@ static void ICACHE_FLASH_ATTR led_status_center(void *arg)
 
 static void system_secs_center( void *arg )
 {
-    /* 根据需求  锁关闭后15秒钟必须将门锁上 */
+    /* 鏍规嵁闇�姹�  閿佸叧闂悗15绉掗挓蹇呴』灏嗛棬閿佷笂 */
     off_count++;
     if (off_count >= 15)
     {

@@ -6,8 +6,8 @@ extern "C"
 {
 #endif
 
-int aes_api_cbc_encrypt_buffer(char * buffer, int len);
-int aes_api_cbc_decrypt_buffer(char * buffer, int len);
+int aes_api_cbc_encrypt_buffer(char * buffer, int len, char * key);
+int aes_api_cbc_decrypt_buffer(char * buffer, int len, char * key);
 
 int aes_api_unit_test(void);
 
