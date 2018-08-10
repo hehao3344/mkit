@@ -101,7 +101,7 @@ void sx1276_hal_lora_init(void)
 ////////////////////////////////////////////////////////////////////////////////
 static void fn_send_byte(uint8 out)
 {
-    spi_mast_byte_write(SPI, out);
+    // spi_mast_byte_write(SPI, out);
 #if 0
     uint8 i;
     for (i = 0; i < 8; i++)

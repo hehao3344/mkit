@@ -30,7 +30,7 @@ void system_config_clk_init( void )
 // ≥ı ºªØGPIO
 void system_config_gpio_config(void)
 {
-    spi_master_init(SPI);
+    //spi_master_init(SPI);
     
     #if 0
     GPIO_DeInit( GPIOA );

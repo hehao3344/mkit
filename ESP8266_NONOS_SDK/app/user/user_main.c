@@ -23,6 +23,8 @@
 #include "framework/apps/smart_config.h"
 #include "framework/device/flash_param.h"
 
+#include "framework/crypto/rsa_api.h"
+
 static os_timer_t status_timer;
 static uint8      led_status = 0;
 static uint32     sys_sec;
@@ -135,7 +137,9 @@ void user_init(void)
 {
     uart_init(BIT_RATE_115200, BIT_RATE_115200);
     os_printf("SDK version:%s\n", system_get_sdk_version());
-
+    
+    rsa_api_unit_test();
+    
     struct station_config station_conf;
     wifi_station_get_config(&station_conf);
     os_printf(MACSTR ",%s,%s \n", MAC2STR(station_conf.bssid), station_conf.password, station_conf.ssid);

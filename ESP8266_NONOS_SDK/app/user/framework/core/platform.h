@@ -37,7 +37,6 @@ extern "C" {
 #undef malloc
 #undef free
 #undef memcpy
-//#undef strstr
 #undef malloc
 #undef malloc
 #undef strcpy
