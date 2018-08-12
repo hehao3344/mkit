@@ -25,6 +25,7 @@
 
 #include "framework/crypto/rsa_api.h"
 #include "framework/crypto/crypto_api.h"
+#include "framework/crypto/packet.h"
 
 static os_timer_t status_timer;
 static uint8      led_status = 0;
@@ -48,7 +49,8 @@ LOCAL int ICACHE_FLASH_ATTR version_get(struct jsontree_context *js_ctx)
 {
     const char *path = jsontree_path_name(js_ctx, js_ctx->depth - 1);
     char string[32];
-
+    
+    os_printf("got %s \n", path);
     if (os_strncmp(path, "hardware", 8) == 0) {
         os_sprintf(string, "0.1");
     }
@@ -61,8 +63,11 @@ LOCAL int ICACHE_FLASH_ATTR version_get(struct jsontree_context *js_ctx)
 LOCAL struct jsontree_callback version_callback =
                                 JSONTREE_CALLBACK(version_get, NULL);
 
+//JSONTREE_OBJECT(hardware,
+//                JSONTREE_PAIR("hardware", &version_callback));
+                
 JSONTREE_OBJECT(INFOTree,
-                JSONTREE_PAIR("info", &version_callback));
+                JSONTREE_PAIR("hardware", &version_callback));
 
 
 
@@ -71,9 +76,9 @@ LOCAL int ICACHE_FLASH_ATTR msg_set(struct jsontree_context *js_ctx, struct json
     int type;
     while ((type = jsonparse_next(parse)) != 0)
     {
-        if(jsonparse_strcmp_value(parse,"v") == 0)
+        if (jsonparse_strcmp_value(parse,"v") == 0)
         {
-            u8 version=0;
+            int version=0;
             jsonparse_next(parse);
             jsonparse_next(parse);
             version = jsonparse_get_value_as_int(parse);
@@ -84,8 +89,7 @@ LOCAL int ICACHE_FLASH_ATTR msg_set(struct jsontree_context *js_ctx, struct json
 }
 
 struct jsontree_callback msg_callback = JSONTREE_CALLBACK(NULL, msg_set);
-JSONTREE_OBJECT(msg_tree,
-JSONTREE_PAIR("v",&msg_callback));
+JSONTREE_OBJECT(msg_tree, JSONTREE_PAIR("v",&msg_callback));
 
 
 LOCAL int ICACHE_FLASH_ATTR msg_set2(struct jsontree_context *js_ctx, struct jsonparse_state *parse)
@@ -93,37 +97,52 @@ LOCAL int ICACHE_FLASH_ATTR msg_set2(struct jsontree_context *js_ctx, struct jso
     int type;
     while ((type = jsonparse_next(parse)) != 0)
     {
-        if(jsonparse_strcmp_value(parse,"v") == 0)
+        if (type == JSON_TYPE_PAIR_NAME)
         {
-            u8 version=0;
-            jsonparse_next(parse);
-            jsonparse_next(parse);
-            version = jsonparse_get_value_as_int(parse);
-            os_printf("version : %d \r\n",version);
+            if (jsonparse_strcmp_value(parse,"main") == 0)
+            {
+                int version=0;
+                jsonparse_next(parse);
+                jsonparse_next(parse);
+                version = jsonparse_get_value_as_int(parse);
+                os_printf("version2 =>>> : %d \r\n",version);
+            }
+            else if(jsonparse_strcmp_value(parse,"sub") == 0)
+            {
+                int version=0;
+                jsonparse_next(parse);
+                jsonparse_next(parse);
+                version = jsonparse_get_value_as_int(parse);
+                os_printf("version3 === : %d \r\n",version);
+            }
         }
     }
     return 0;
 }
 
 struct jsontree_callback msg_callback2 = JSONTREE_CALLBACK(NULL, msg_set2);
-JSONTREE_OBJECT(msg_tree2, JSONTREE_PAIR("v",&msg_callback2));
-JSONTREE_OBJECT(msg_tree_lv2, JSONTREE_PAIR("v2",&msg_tree2));
+
+JSONTREE_OBJECT(msg_tree2, 
+                JSONTREE_PAIR("main", &msg_callback2), 
+                JSONTREE_PAIR("sub", &msg_callback2),);
+
+JSONTREE_OBJECT(msg_tree_lv2, JSONTREE_PAIR("version", &msg_tree2));
 
 int json_test(void)
 {
     char json_buffer[32] = {0};
     json_ws_send((struct jsontree_value *)&INFOTree, "info", json_buffer);
-    os_printf("[JSON]:%s \n", json_buffer);
+    os_printf("[JSON]: = %s \n", json_buffer);
 
-    char * parse_string = "{\"v\":\"100\"}";
+    //char * parse_string = "{\"v\":100}";
+    //struct jsontree_context js;
+    //jsontree_setup(&js, (struct jsontree_value *)&msg_tree, json_putchar);
+    //json_parse(&js, parse_string);
+
+    // os_printf("[JSON]: == %s \n", json_buffer);
+
     struct jsontree_context js;
-    jsontree_setup(&js, (struct jsontree_value *)&msg_tree, json_putchar);
-    json_parse(&js, parse_string);
-
-    os_printf("[JSON]:%s \n", json_buffer);
-
-
-    char * parse_string2 = "{\"v\":{\"v2\":\"200\"}}";
+    char * parse_string2 = "{\"version\":{\"main\":300,\"sub\":200}}";
     jsontree_setup(&js, (struct jsontree_value *)&msg_tree_lv2, json_putchar);
     json_parse(&js, parse_string2);
 }
@@ -140,7 +159,16 @@ void user_init(void)
     os_printf("SDK version:%s\n", system_get_sdk_version());
     
     // rsa_api_unit_test();
-    crypto_api_unit_test();
+    
+    os_printf("================= \n");
+    
+    packet_test();
+    
+    //json_test();
+    
+    //aes_api_unit_test();    
+    //os_printf("================= \n");
+    //crypto_api_unit_test();
     
     return;
 
@@ -199,7 +227,6 @@ void user_init(void)
         os_timer_setfn(&sys_timer, (os_timer_func_t *)system_secs_center, NULL);
         os_timer_arm(&sys_timer, 1000, 1); // 0 at once, 1 restart auto.
 
-        /* 鎵撳紑寮�鍏� */
         switch_level = 0x01;
         user_switch_output(1);
     }
@@ -230,7 +257,6 @@ static void ICACHE_FLASH_ATTR led_status_center(void *arg)
 
 static void system_secs_center( void *arg )
 {
-    /* 鏍规嵁闇�姹�  閿佸叧闂悗15绉掗挓蹇呴』灏嗛棬閿佷笂 */
     off_count++;
     if (off_count >= 15)
     {

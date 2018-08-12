@@ -9,12 +9,12 @@ extern "C"
 
 #define KEY_PASSWORD    "abcdmkitABCDMKIT"
 
-
 char * crypto_api_gen_key(char * pub_key, char * key);
+
 /* 中控加密函数 输入数据长度必须是16的倍数 */
-int crypto_api_encrypt_buffer(char *key, char * buffer, int len);
+int crypto_api_encrypt_buffer(char * buffer, int len);
 /* 中控解密函数 输入数据长度必须是16的倍数 */
-int crypto_api_decrypt_buffer(char *key, char * buffer, int len);
+int crypto_api_decrypt_buffer(char * buffer, int len);
 
 int crypto_api_unit_test(void);
 

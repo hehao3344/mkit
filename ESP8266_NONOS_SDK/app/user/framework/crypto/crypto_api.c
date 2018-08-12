@@ -25,36 +25,38 @@ char * crypto_api_gen_key(char * pub_key, char * key)
 }
 
 /* 中控加密函数 输入数据长度必须是16的倍数 */
-int crypto_api_encrypt_buffer(char *key, char * buffer, int len)
+int crypto_api_encrypt_buffer(char * buffer, int len)
 {   
-    if ((0 != len%BLOCK_LEN) || (NULL == key))
+    if (0 != len%BLOCK_LEN)
     {
         os_printf("invalid param \n");
         return -1;
     }
     
-    return aes_api_cbc_encrypt_buffer(buffer, len, key);
+    return aes_api_cbc_encrypt_buffer(buffer, len);
 }
 
 /* 中控解密函数 输入数据长度必须是16的倍数 */
-int crypto_api_decrypt_buffer(char *key, char * buffer, int len)
+int crypto_api_decrypt_buffer(char * buffer, int len)
 {   
-    if ((0 != len%BLOCK_LEN) || (NULL == key))
+    if (0 != len%BLOCK_LEN)
     {
         os_printf("invalid param \n");
         return -1;
     }
     
-    return aes_api_cbc_decrypt_buffer(buffer, len, key);  
+    return aes_api_cbc_decrypt_buffer(buffer, len);  
 }
 
 int crypto_api_unit_test(void)
 {
-    char buffer[16] = {0x01, 0x02, 0x03, 0x04};
-    crypto_api_encrypt_buffer(KEY_PASSWORD, buffer, sizeof(buffer));
+    char buffer[32] = {0x01, 0x02, 0x03, 0x04};
     
-    memset(buffer, 0, sizeof(buffer));
-    crypto_api_decrypt_buffer(KEY_PASSWORD, buffer, sizeof(buffer));
+    aes_api_cbc_set_key(KEY_PASSWORD, strlen(KEY_PASSWORD));
+    crypto_api_encrypt_buffer(buffer, sizeof(buffer));
+    
+    //memset(buffer, 0, sizeof(buffer));
+    crypto_api_decrypt_buffer(buffer, sizeof(buffer));
     
     int i;
     for (i=0; i<sizeof(buffer); i++)
