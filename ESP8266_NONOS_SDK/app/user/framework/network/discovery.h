@@ -10,7 +10,6 @@ extern "C" {
 #define DEV_UUID_LEN        (16)
 #define BROADCASE_PORT      (12088)
 
-
 typedef struct _DISCOVER_ENV
 {
     char  dev_uuid[DEV_UUID_LEN]; /* 中控设备的ID */

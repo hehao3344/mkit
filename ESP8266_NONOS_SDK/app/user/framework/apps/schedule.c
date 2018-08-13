@@ -11,6 +11,7 @@
 #include "../core/mem_mgr.h"
 #include "../device/flash_param.h"
 #include "../network/wifi.h"
+#include "../network/discovery.h"
 #include "../tcp/tcp_client.h"
 #include "delay.h"
 #include "user_plug.h"
@@ -91,6 +92,16 @@ boolean ICACHE_FLASH_ATTR schedule_create(uint16 smart_config)
         j += 3;
     }
     handle->mac[12] = 0;
+    
+    DISCOVER_ENV dis_env;
+    dis_env.port = TCP_BIND_PORT;
+    os_memset(&dis_env, 0, sizeof(DISCOVER_ENV));
+    os_sprintf(dis_env.dev_uuid, "01%s", handle->mac); /* 01表示中控 */
+    if (0 != discovery_create(&dis_env))
+    {
+        os_printf("dis failed \n");
+        return -1;
+    }
 
     /* 上电将开关打开 */
     handle->switch_level = 0x01;
@@ -127,10 +138,6 @@ static SCHEDULE_OBJECT * instance( void )
 
 static void ICACHE_FLASH_ATTR tcp_recv_data_callback(void *arg, char *buffer, unsigned short length)
 {
-//{"device":"123456","relay_toggle":"ON"}
-//{"device":"123456","relay_toggle":"OFF"}
-//{"device":"123456","reset_connection":"ON"}
-
     SCHEDULE_OBJECT * handle = (SCHEDULE_OBJECT *)arg;
     if (NULL == handle)
     {
@@ -139,48 +146,6 @@ static void ICACHE_FLASH_ATTR tcp_recv_data_callback(void *arg, char *buffer, un
     }
 
     os_printf("receive len:%d msg:%s \n", length, buffer);
-
-    char mac[40] = {0};
-    int8 * head = strstr(buffer, "\":\"");
-    int8 * tail = strstr(buffer, "\",\"");
-
-    if ((NULL != head) && (NULL != tail) &&
-        ((tail-head) > 0) && ((tail-head-1) < sizeof(mac)))
-    {
-        os_memcpy(mac, head+3, tail-head-3);
-        os_printf("find mac = %s \n", mac);
-    }
-    else
-    {
-        os_printf("receive other msg %s \n", buffer);
-        return;
-    }
-    if (0 != os_strncmp(mac, handle->mac, sizeof(handle->mac)))
-    {
-        os_printf("mac mis-match %s %s \n", mac, handle->mac);
-        return;
-    }
-
-    if (0 != os_strstr(buffer, (const char *)"\"relay_toggle\":\"ON\""))
-    {
-        os_printf("switch => on \n");
-        user_switch_output(1);
-        handle->switch_level = 0x01;
-    }
-    else if (0 != os_strstr(buffer, (const char *)"\"relay_toggle\":\"OFF\""))
-    {
-        os_printf("switch => off \n");
-        user_switch_output(0);
-        handle->off_count = 0;
-        handle->switch_level = 0x00;
-    }
-    else if (0 != os_strstr(buffer, (const char *)"\"reset_connection\":\"ON\""))
-    {
-        os_printf("reset config \n");
-    	flash_param_set_id(CONFIG_RESET_ID);
-        system_restore();
-        system_restart();
-    }
 }
 
 static void system_timer_center( void *arg )

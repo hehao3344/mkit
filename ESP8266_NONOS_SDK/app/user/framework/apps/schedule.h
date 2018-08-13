@@ -8,8 +8,9 @@ extern "C"
 {
 #endif
 
-#define SCH_PROC_TASK_PRIO         0
-#define SCH_PROC_TASK_QUEUE_LEN    4 // wifi+ntp
+#define TCP_BIND_PORT               (60121) 
+#define SCH_PROC_TASK_PRIO          0
+#define SCH_PROC_TASK_QUEUE_LEN     4 // wifi+ntp
 
 boolean schedule_create( uint16 smart_config );
 void    schedule_destroy( void );
