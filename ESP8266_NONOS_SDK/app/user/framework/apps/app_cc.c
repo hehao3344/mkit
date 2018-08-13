@@ -1,14 +1,15 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+
 #include "user_interface.h"
 #include "ets_sys.h"
 #include "os_type.h"
 #include "osapi.h"
 #include "mem.h"
 #include "espconn.h"
-#include "driver/uart.h"
-#include "../core/mem_mgr.h"
+#include "user_json.h"
+#include "../tcp/tcp_server.h"
 #include "../device/flash_param.h"
 
 #include "app_cc.h"
@@ -19,7 +20,7 @@ typedef struct _SUB_DEV_PARAM
 {
     char dev_uuid[16];
     int  status;        /* online-1 offline-0 */
-    int  switch;        /* on-1 off-0 */
+    int  on_off;        /* on-1 off-0 */
 } SUB_DEV_PARAM;
 
 typedef struct _APP_CC_OBJECT
@@ -32,11 +33,11 @@ typedef struct _APP_CC_OBJECT
 \"method\":\"up_msg\",\
 \"req_id\":%d,\
 \"code\":0,\
-\"attribute\":
+\"attribute\":\
 {\
 \"dev1\":\
-{
-\"dev_uuid\":\"%s",\
+{\
+\"dev_uuid\":\"%s\",\
 \"status\":\"%s\",\
 \"switch\":\"%s\",\
 }\
@@ -44,11 +45,11 @@ typedef struct _APP_CC_OBJECT
 {\
 \"dev_uuid\":\"%s\",\
 \"status\":\"%s\",\
-\"switch\":\"on\",\
+\"switch\":\"%s\",\
 }\
 \"dev3\":\
 {\
-\"dev_uuid\":\"%s\", \
+\"dev_uuid\":\"%s\",\
 \"status\":\"%s\",\
 \"switch\":\"%s\",\
 }\
@@ -59,11 +60,11 @@ typedef struct _APP_CC_OBJECT
 \"switch\":\"%s\",\
 }\
 }\
-}
+}"
 
-
-static APP_CC_OBJECT * instance(void);
-static void ICACHE_FLASH_ATTR recv_data_callback(void *arg, char *buffer, unsigned short length);
+LOCAL APP_CC_OBJECT * instance(void);
+LOCAL void ICACHE_FLASH_ATTR recv_data_callback(void *arg, char *buffer, int length);
+LOCAL int ICACHE_FLASH_ATTR msg_parse(struct jsontree_context *js_ctx, struct jsonparse_state *parse);
 
 int ICACHE_FLASH_ATTR app_cc_create(void)
 {
@@ -76,8 +77,15 @@ int ICACHE_FLASH_ATTR app_cc_create(void)
         // handle->dev_uuid[i];
     }
     os_printf("[app_cc] init ok \n");
-
-    return TRUE;
+    
+    if (0 != tcp_server_create())
+    {
+        os_printf("tcp svr failed \n");
+        return -1;
+    }
+    tcp_server_set_callback(handle, recv_data_callback);
+    
+    return 0;
 }
 
 void ICACHE_FLASH_ATTR app_cc_destroy(void)
@@ -93,7 +101,7 @@ void ICACHE_FLASH_ATTR app_cc_destroy(void)
 //////////////////////////////////////////////////////////////////////////////////
 // static function.
 //////////////////////////////////////////////////////////////////////////////////
-static APP_CC_OBJECT * instance( void )
+LOCAL APP_CC_OBJECT * instance( void )
 {
     static APP_CC_OBJECT *handle = NULL;
     if (NULL == handle)
@@ -147,16 +155,16 @@ LOCAL int ICACHE_FLASH_ATTR msg_parse(struct jsontree_context *js_ctx, struct js
                     os_sprintf(resp_buf, GET_DEV_LIST_RESP, handle->req_id,
                                             dev_param[0].dev_uuid,
                                                 (1 == dev_param[0].dev_uuid) ? "online" : "offline",
-                                                    (1 == dev_param[0].switch) ? "on" : "off",
+                                                    (1 == dev_param[0].on_off) ? "on" : "off",
                                             dev_param[1].dev_uuid,
                                                 (1 == dev_param[1].dev_uuid) ? "online" : "offline",
-                                                    (1 == dev_param[1].switch) ? "on" : "off",
+                                                    (1 == dev_param[1].on_off) ? "on" : "off",
                                             dev_param[2].dev_uuid,
                                                 (1 == dev_param[2].dev_uuid) ? "online" : "offline",
-                                                    (1 == dev_param[2].switch) ? "on" : "off",
+                                                    (1 == dev_param[2].on_off) ? "on" : "off",
                                             dev_param[3].dev_uuid,
                                                 (1 == dev_param[3].dev_uuid) ? "online" : "offline",
-                                                    (1 == dev_param[3].switch) ? "on" : "off");
+                                                    (1 == dev_param[3].on_off) ? "on" : "off");
                     /* 发送到客户端 */
                     os_printf("get resp %s len %d \n", resp_buf, strlen(resp_buf));
                     os_free(resp_buf);
@@ -176,7 +184,7 @@ JSONTREE_OBJECT(msg_tree, JSONTREE_PAIR("method", NULL),
                           JSONTREE_PAIR("req_id", NULL),
                           JSONTREE_PAIR("attr",  &msg_tree_sub));
 
-static void ICACHE_FLASH_ATTR recv_data_callback(void *arg, char *buffer, unsigned short length)
+static void ICACHE_FLASH_ATTR recv_data_callback(void *arg, char *buffer, int length)
 {
     APP_CC_OBJECT * handle = (APP_CC_OBJECT *)arg;
     if (NULL == handle)

@@ -212,7 +212,6 @@ static void ICACHE_FLASH_ATTR register_center(void *arg)
         return;
     }
 
-
     if (!handle->proxy_is_handle)
     {
         os_printf("register_center: connecting ... \n");

@@ -8,7 +8,7 @@ extern "C"
 {
 #endif
 
-#define TCP_BIND_PORT               (60121) 
+
 #define SCH_PROC_TASK_PRIO          0
 #define SCH_PROC_TASK_QUEUE_LEN     4 // wifi+ntp
 
