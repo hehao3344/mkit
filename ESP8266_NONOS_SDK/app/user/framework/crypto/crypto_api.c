@@ -24,6 +24,11 @@ char * crypto_api_gen_key(char * pub_key, char * key)
     return (char *)rsa_api_encrypt_buffer(pub_key, strlen(pub_key), key, strlen(key));
 }
 
+void crypto_api_cbc_set_key(char * key, int len)
+{
+    aes_api_cbc_set_key(key, len);
+}
+
 /* 中控加密函数 输入数据长度必须是16的倍数 */
 int crypto_api_encrypt_buffer(char * buffer, int len)
 {   

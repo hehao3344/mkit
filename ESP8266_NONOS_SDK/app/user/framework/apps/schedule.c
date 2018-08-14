@@ -13,9 +13,12 @@
 #include "../network/wifi.h"
 #include "../network/discovery.h"
 #include "../tcp/tcp_client.h"
+#include "../tcp/tcp_server.h"
 #include "delay.h"
 #include "user_plug.h"
 #include "schedule.h"
+
+#define MAX_SUB_DEV_COUNT   4
 
 typedef struct _SCHEDULE_OBJECT
 {
@@ -24,7 +27,9 @@ typedef struct _SCHEDULE_OBJECT
     os_timer_t sys_timer;
 
     int8 mac[40];
-
+    
+    char dev_uuid[MAX_SUB_DEV_COUNT][16];
+    
     // 3 secs off - 100 ms on - ok
     // 100 ms off - 100 ms on - auth failed.
     os_timer_t net_led_timer;
@@ -33,7 +38,8 @@ typedef struct _SCHEDULE_OBJECT
     uint8 net_wifi_status;          // 0 auth failed, 1 success.
     uint8 switch_level;
     uint8 off_count;
-    // os_event_t proc_task_queue[SCH_PROC_TASK_QUEUE_LEN];
+    
+    char send_buf[256];
     // key press.
     struct keys_param keys;
     struct single_key_param *single_key[PLUG_KEY_NUM];
@@ -66,6 +72,14 @@ boolean ICACHE_FLASH_ATTR schedule_create(uint16 smart_config)
     handle->keys.key_num    = PLUG_KEY_NUM;
     handle->keys.single_key = handle->single_key;
     key_init(&handle->keys);
+    
+    int i;
+    for (i=0; i<MAX_SUB_DEV_COUNT; i++)
+    {
+        os_memset(handle->dev_uuid[i], 0, sizeof(handle->dev_uuid[i]));
+        flash_param_get_dev_uuid(i, handle->dev_uuid[i], sizeof(handle->dev_uuid[i]));
+    }
+    crypto_api_cbc_set_key(KEY_PASSWORD, strlen(KEY_PASSWORD));
 
     os_timer_disarm(&handle->sys_timer);
     os_timer_setfn(&handle->sys_timer, (os_timer_func_t *)system_timer_center, handle);
@@ -103,11 +117,7 @@ boolean ICACHE_FLASH_ATTR schedule_create(uint16 smart_config)
         return -1;
     }
 
-    /* 上电将开关打开 */
-    handle->switch_level = 0x01;
-    user_switch_output(1);
-
-    os_printf("[schedule] init ok \n");
+    os_printf("[sch] init ok \n");
 
     return TRUE;
 }
@@ -148,21 +158,37 @@ static void ICACHE_FLASH_ATTR tcp_recv_data_callback(void *arg, char *buffer, un
     os_printf("receive len:%d msg:%s \n", length, buffer);
 }
 
+#define SYNC_TIME "{\
+\"method\":\"down_msg\",\
+\"dev_uuid\":\"%s\",\
+\"req_id\":%d,\
+\"attr\":\
+{\
+\"cmd\":\"set_time\":\
+{\
+\"ts\":%d\
+}\
+}\
+}"
+
 static void system_timer_center( void *arg )
 {
     SCHEDULE_OBJECT * handle = ( SCHEDULE_OBJECT * )arg;
-
-    handle->sys_sec++;
-
-    /* 根据需求  锁关闭后15秒钟必须将门锁上 */
-    handle->off_count++;
-    // os_printf("count = %d \n", handle->off_count);
-    if (handle->off_count >= 15)
+    
+    if (0 == handle->sys_sec++ % 60)
     {
-        handle->off_count = 0;
-        handle->switch_level = 0x01;
-        user_switch_output(1);
-    }
+        int i;
+        int req_id = (int)rand();
+        for (i=0; i<MAX_SUB_DEV_COUNT; i++)
+        {            
+            /* 每隔XX秒同步一次时间 */
+            os_memset(handle->send_buf, 0, sizeof(handle->send_buf));
+            os_sprintf(handle->send_buf, SYNC_TIME, handle->dev_uuid[i], req_id, handle->sys_sec);
+            
+            crypto_api_encrypt_buffer(handle->send_buf, sizeof(handle->send_buf));
+            /* 发送到子设备 */
+        }
+    }    
 
     // check wifi status.
     static uint32 wifi_check = 0;
@@ -239,9 +265,8 @@ static void ICACHE_FLASH_ATTR key_long_press( void )
 
     //flash_param_default_restore();
     //user_esp_platform_set_active(0);
-    flash_param_set_id(CONFIG_RESET_ID);
+    // flash_param_set_id(CONFIG_RESET_ID);
 
     system_restore();
     system_restart();
 }
-

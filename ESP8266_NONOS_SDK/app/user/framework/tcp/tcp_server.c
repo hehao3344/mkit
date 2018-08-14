@@ -25,7 +25,7 @@ static TCP_SERVER_OBJECT * instance(void);
 LOCAL void ICACHE_FLASH_ATTR commu_listen(void *arg);
 LOCAL void ICACHE_FLASH_ATTR commu_discon(void *arg);
 LOCAL void ICACHE_FLASH_ATTR commu_recon(void *arg, sint8 err);
-LOCAL void ICACHE_FLASH_ATTR commu_recv(void *arg, char *buffer, unsigned short length);
+LOCAL void ICACHE_FLASH_ATTR commu_recv(void *arg, char *buffer,  unsigned short length);
 
 int ICACHE_FLASH_ATTR tcp_server_create(void)
 {
@@ -42,7 +42,7 @@ int ICACHE_FLASH_ATTR tcp_server_create(void)
     handle->commu_conn.state = ESPCONN_NONE;
     handle->commu_conn.proto.tcp->local_port = TCP_BIND_PORT;
     espconn_regist_connectcb(&handle->commu_conn, commu_listen);
-    espconn_accept &handle->commu_conn);
+    espconn_accept(&handle->commu_conn);
 
     os_printf("[tcp svr] create ok \n");
 
@@ -116,9 +116,9 @@ LOCAL void ICACHE_FLASH_ATTR commu_listen(void *arg)
     espconn_regist_disconcb(pesp_conn, commu_discon);
 }
 
-LOCAL void ICACHE_FLASH_ATTR commu_recv(void *arg, char *buffer, int length)
+LOCAL void ICACHE_FLASH_ATTR commu_recv(void *arg, char *buffer, unsigned short length)
 {
     TCP_SERVER_OBJECT *handle = instance();
 
-    handle->cb(handle->arg, buffer, length);               
+    handle->cb(handle->arg, buffer, (int)length);               
 }

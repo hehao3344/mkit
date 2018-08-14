@@ -21,9 +21,5 @@
  ../../include/json/jsontree.h framework/apps/user_plug.h \
  framework/apps/../../../include/driver/key.h ../../include/gpio.h \
  framework/apps/smart_config.h framework/device/flash_param.h \
- framework/device/../core/core.h framework/device/../core/msc_types.h \
- framework/device/../core/debug.h framework/device/../core/mem_mgr.h \
- ../../include/os_type.h framework/device/../core/core.h \
- framework/device/../core/msc_list.h framework/device/../core/protocol.h \
  framework/crypto/rsa_api.h framework/crypto/crypto_api.h \
  framework/crypto/packet.h

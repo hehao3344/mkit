@@ -27,8 +27,6 @@
  ../../../include/user_json.h ../../../../include/json/jsonparse.h \
  ../../../../include/c_types.h ../../../../include/json/json.h \
  ../../../../include/json/jsontree.h ../tcp/tcp_server.h \
- ../device/flash_param.h ../device/../core/core.h \
- ../device/../core/msc_types.h ../device/../core/debug.h \
- ../device/../core/mem_mgr.h ../device/../core/core.h \
- ../device/../core/msc_list.h ../device/../core/protocol.h app_cc.h \
- ../core/core.h
+ ../device/flash_param.h app_cc.h ../core/core.h ../core/msc_types.h \
+ ../core/debug.h ../core/mem_mgr.h ../core/core.h ../core/msc_list.h \
+ ../core/protocol.h
