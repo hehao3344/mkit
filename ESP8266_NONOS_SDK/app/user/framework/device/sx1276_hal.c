@@ -35,12 +35,12 @@
 #define  PA_TXD_OUT()            
 #define  PA_RXD_OUT()         
 
-static RfPlugResult cur_rf_result = {0, 0, 0, 0};
-
 static void  fn_send_byte(uint8 out);
 static uint8 fn_spi_read_byte(void);
 static void  fn_cmd_switch_en(CmdEntype_t cmd);
 static void  fn_cmd_switch_pa(CmdPaType_t cmd);
+
+static recv_data_callback recv_cb = NULL;
 
 // 接收到RF的数据
 static void fn_fqc_recv_data(uint8 *lpbuf, uint16 len);
@@ -56,6 +56,11 @@ lpCtrlTypefunc_t  ctrlTypefunc = {
 void sx1276_hal_recv_msg(void)
 {
     sx1278_recv_handle();
+}
+
+void sx1276_hal_set_recv_cb(recv_data_callback cb)
+{
+    recv_cb = cb;
 }
 
 // 芯片复位
@@ -75,20 +80,6 @@ void sx1276_hal_register_rf_func(void)
 void sx1276_hal_rf_send_packet(uint8 *rf_tran_buf, uint8 len)
 {
      rx1276_rf_send_packet(rf_tran_buf, len);
-}
-
-RfPlugResult * sx1276_hal_get_rf_result(void)
-{
-    return &cur_rf_result;
-}
-
-void sx1276_hal_clear_rf_result(void)
-{
-    cur_rf_result.switch_invalid     = 0;    
-    cur_rf_result.match_cmd          = 0;
-    cur_rf_result.switch_on_off      = 0;
-    cur_rf_result.group              = 0;
-    cur_rf_result.address            = 0;
 }
 
 void sx1276_hal_lora_init(void)
@@ -188,27 +179,9 @@ static void fn_cmd_switch_pa(CmdPaType_t cmd)
 // 接收到RF的数据
 static void fn_fqc_recv_data(uint8 *buffer, uint16 len)
 {
-    RfPlugResult * rf_device_result = NULL; // protocol_device_resolve_data(buffer, len);
-
-    if (NULL != rf_device_result)
+    os_printf("get buf %s len %d \n", buffer, len);
+    if (NULL != recv_cb)
     {
-        static int32 flags = 0;
-        cur_rf_result.switch_invalid      = rf_device_result->switch_invalid;
-        cur_rf_result.switch_on_off       = rf_device_result->switch_on_off;
-        cur_rf_result.match_cmd           = rf_device_result->match_cmd;
-        cur_rf_result.group               = rf_device_result->group;
-        cur_rf_result.address             = rf_device_result->address;
-        
-        if (0 == flags)
-        {
-            flags = 1;
-            STATUS_ON;
-        }
-        else 
-        {
-            flags = 0;
-            STATUS_OFF;
-        }
-        
+        recv_cb(buffer, len);
     }
 }

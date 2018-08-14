@@ -2,7 +2,7 @@
 
 static uint8   frequency[3] = { 0x6c, 0x80, 0x00 };
 //static uint8   spreading_factor = 11;   // 7-12
-// ¿©∆µ“Ú◊”
+
 static uint8   spreading_factor = 7;   // 7-12
 static uint8   coding_rate = 2;         // 1-4
 
@@ -22,8 +22,8 @@ static uint8   bw_frequency = 3;    // 20.8K
 static uint8   power_value  = 7;
 static uint8   power_data[8] = { 0x80, 0x80, 0x80, 0x83, 0x86, 0x89, 0x8c, 0x8f };
 
-//static double rssi_offset_lf = -164.0;         // 800mhz“‘œ¬∆µ¬ ”√
-//static double rssi_offset_hf = -157.0;         // 800mhz“‘…œ∆µ¬ ”√
+//static double rssi_offset_lf = -164.0;         // 800mhz
+//static double rssi_offset_hf = -157.0;         // 800mhz
 //static double current_rssi_value = 0.0;
 //static double pack_rssi_value    = 0.0;
 //static int8_t rx_packet_snr_estimate;
@@ -35,146 +35,144 @@ static uint8   power_data[8] = { 0x80, 0x80, 0x80, 0x83, 0x86, 0x89, 0x8c, 0x8f 
 static uint8  recv_buffer[16];
 static lpCtrlTypefunc_t lp_type_func = { 0, 0, 0, 0, 0 };
 
-static void write_buffer( uint8 addr, uint8 buffer );
-static uint8 read_buffer( uint8 addr);
-static void lora_set_op_mode( RFMODE_SET opMode );
-static void lora_fsk( DEBUGGING_FSK_OOK opMode );
-static void lora_set_rf_frequency( void );
-static void lora_set_rf_power( uint8 power );
-static void lora_set_spreading_factor( uint8 factor );
-static void lora_set_nb_trig_peaks( uint8 value );
-static void lora_set_error_coding( uint8 value );
-static void lora_set_packet_crc_on( boolean enable );
-static void lora_set_signal_bandwidth( uint8 bw );
-static void lora_set_implicit_header_on( boolean enable );
-static void lora_set_symb_timeout( uint32 value );
-static void lora_set_payload_length( uint8 value );
-static void lora_set_mobile_node( boolean enable );
-static void rf_receive ( void );
+static void write_buffer(uint8 addr, uint8 buffer);
+static uint8 read_buffer(uint8 addr);
+static void lora_set_op_mode(RFMODE_SET opMode);
+static void lora_fsk(DEBUGGING_FSK_OOK opMode);
+static void lora_set_rf_frequency(void);
+static void lora_set_rf_power(uint8 power);
+static void lora_set_spreading_factor(uint8 factor);
+static void lora_set_nb_trig_peaks(uint8 value);
+static void lora_set_error_coding(uint8 value);
+static void lora_set_packet_crc_on(boolean enable);
+static void lora_set_signal_bandwidth(uint8 bw);
+static void lora_set_implicit_header_on(boolean enable);
+static void lora_set_symb_timeout(uint32 value);
+static void lora_set_payload_length(uint8 value);
+static void lora_set_mobile_node(boolean enable);
+static void rf_receive (void);
 
-//static void lora_set_pream_length( uint32 value );
-//static void fsk_send_packet( void );
-//static void rf_cad_receive ( void );
-//static void rf_sleep( void );
-//static double lora_read_rssi( void );
-//static double lora_read_pack_rssi_value( void );
-//static void   rssi( void );
+//static void lora_set_pream_length(uint32 value);
+//static void fsk_send_packet(void);
+//static void rf_cad_receive (void);
+//static void rf_sleep(void);
+//static double lora_read_rssi(void);
+//static double lora_read_pack_rssi_value(void);
+//static void   rssi(void);
 
-void sx1276_delay_1s( uint32 ii )
+void sx1276_delay_1s(uint32 ii)
 {
     uint8 j;
-    while( ii-- )
+    while(ii--)
     {
-        for( j=0; j<100; j++ );
+        for(j=0; j<100; j++);
     }
 }
 
-void rx1276_rf_send_packet( uint8 *rf_tran_buf, uint8 len )
+void rx1276_rf_send_packet(uint8 *rf_tran_buf, uint8 len)
 {
     uint8 i;
 
-    lp_type_func.paSwitchCmdfunc( TX_OPEN );
-    lora_set_op_mode( STDBY_MODE );
-    write_buffer( REG_LR_HOPPERIOD, 0 );                 // ≤ª◊ˆ∆µ¬ Ã¯±‰
-    write_buffer( REG_LR_IRQFLAGSMASK, IRQN_TXD_Value );   // ¥Úø™∑¢ÀÕ÷–∂œ
-    write_buffer( REG_LR_PAYLOADLENGTH, len );             // ◊Ó¥Û ˝æ›∞¸
-    write_buffer( REG_LR_FIFOTXBASEADDR, 0 );
-    write_buffer( REG_LR_FIFOADDRPTR, 0 );
+    lp_type_func.paSwitchCmdfunc(TX_OPEN);
+    lora_set_op_mode(STDBY_MODE);
+    write_buffer(REG_LR_HOPPERIOD, 0);                 // ÔøΩÔøΩÔøΩÔøΩ∆µÔøΩÔøΩÔøΩÔøΩÔøΩ?
+    write_buffer(REG_LR_IRQFLAGSMASK, IRQN_TXD_Value);   // ÔøΩÚø™∑ÔøΩÔøΩÔøΩÔøΩ–∂ÔøΩ
+    write_buffer(REG_LR_PAYLOADLENGTH, len);             // ÔøΩÔøΩÔøΩÔøΩÔøΩ›∞ÔøΩ
+    write_buffer(REG_LR_FIFOTXBASEADDR, 0);
+    write_buffer(REG_LR_FIFOADDRPTR, 0);
 
-    lp_type_func.lpSwitchEnStatus( EN_OPEN );
-    lp_type_func.lpByteWritefunc( 0x80 );
+    lp_type_func.lpSwitchEnStatus(EN_OPEN);
+    lp_type_func.lpByteWritefunc(0x80);
 
-    for ( i = 0; i < len; i++ )
+    for (i = 0; i < len; i++)
     {
-        lp_type_func.lpByteWritefunc( *rf_tran_buf );
+        lp_type_func.lpByteWritefunc(*rf_tran_buf);
         rf_tran_buf++;
     }
 
-    lp_type_func.lpSwitchEnStatus( EN_CLOSE );
+    lp_type_func.lpSwitchEnStatus(EN_CLOSE);
     write_buffer(REG_LR_DIOMAPPING1,0x40);
     write_buffer(REG_LR_DIOMAPPING2,0x00);
-    lora_set_op_mode( TRANSMITTER_MODE );
+    lora_set_op_mode(TRANSMITTER_MODE);
 }
 
-// …Ë÷√∫Ø ˝µÿ÷∑
-void rx1276_register_rf_func( lpCtrlTypefunc_t *func )
+void rx1276_register_rf_func(lpCtrlTypefunc_t *func)
 {
-    if ( 0 != func->lpByteWritefunc )
+    if (0 != func->lpByteWritefunc)
     {
         lp_type_func.lpByteWritefunc = func->lpByteWritefunc;
     }
 
-    if ( 0 != func->lpByteReadfunc )
+    if (0 != func->lpByteReadfunc)
     {
         lp_type_func.lpByteReadfunc = func->lpByteReadfunc;
     }
 
-    if ( 0 != func->lpSwitchEnStatus )
+    if (0 != func->lpSwitchEnStatus)
     {
         lp_type_func.lpSwitchEnStatus = func->lpSwitchEnStatus;
     }
 
-    if ( 0 != func->paSwitchCmdfunc )
+    if (0 != func->paSwitchCmdfunc)
     {
         lp_type_func.paSwitchCmdfunc = func->paSwitchCmdfunc;
     }
 
-    if ( 0 != func->lpRecvDataTousr )
+    if (0 != func->lpRecvDataTousr)
     {
         lp_type_func.lpRecvDataTousr = func->lpRecvDataTousr;
     }
 }
 
-void sx1276_lora_init( void )
+void sx1276_lora_init(void)
 {
-    lora_set_op_mode( SLEEP_MODE );      // …Ë÷√ÀØ√ﬂƒ£ Ω
-    lora_fsk( LORA_MODE );               // …Ë÷√¿©∆µƒ£ Ω
-    lora_set_op_mode(STDBY_MODE);        // …Ë÷√Œ™∆’Õ®ƒ£ Ω
-    write_buffer( REG_LR_DIOMAPPING1, GPIO_VARE_1 );
-    write_buffer( REG_LR_DIOMAPPING2, GPIO_VARE_2 );
+    lora_set_op_mode(SLEEP_MODE);     
+    lora_fsk(LORA_MODE);             
+    lora_set_op_mode(STDBY_MODE);       
+    write_buffer(REG_LR_DIOMAPPING1, GPIO_VARE_1);
+    write_buffer(REG_LR_DIOMAPPING2, GPIO_VARE_2);
     lora_set_rf_frequency();
-    lora_set_rf_power( power_value );
-    lora_set_spreading_factor( spreading_factor );  // ¿©∆µ“Ú◊”…Ë÷√
-    lora_set_error_coding( coding_rate );       // ”––ß ˝æ›±»
-    lora_set_packet_crc_on( TRUE );             // CRC –£—È¥Úø™
-    lora_set_signal_bandwidth( bw_frequency );      // …Ë÷√¿©∆µ¥¯øÌ
-    lora_set_implicit_header_on( FALSE );       // Õ¨≤ΩÕ∑ «œ‘–‘ƒ£ Ω
-    lora_set_payload_length( 0xff );
-    lora_set_symb_timeout( 0x3FF );
-    lora_set_mobile_node( TRUE );               // µÕ ˝æ›µƒ”≈ªØ
+    lora_set_rf_power(power_value);
+    lora_set_spreading_factor(spreading_factor); 
+    lora_set_error_coding(coding_rate);       
+    lora_set_packet_crc_on(TRUE);             
+    lora_set_signal_bandwidth(bw_frequency);     
+    lora_set_implicit_header_on(FALSE);      
+    lora_set_payload_length(0xff);
+    lora_set_symb_timeout(0x3FF);
+    lora_set_mobile_node(TRUE);              
     rf_receive();
 }
 
-void sx1278_recv_handle( void )
+void sx1278_recv_handle(void)
 {
     uint8 i;
     uint8 rf_ex0_status = 0;
     uint8 crc_value     = 0;
     uint8 sx1278_rlen   = 0;
 
-    rf_ex0_status = read_buffer( REG_LR_IRQFLAGS );
-    if ( 0x40 == ( rf_ex0_status & 0x40 ) )
+    rf_ex0_status = read_buffer(REG_LR_IRQFLAGS);
+    if (0x40 == (rf_ex0_status & 0x40))
     {
-        crc_value = read_buffer( REG_LR_MODEMCONFIG2 );
+        crc_value = read_buffer(REG_LR_MODEMCONFIG2);
 
-        if ( crc_value & 0x04 == 0x04 )
+        if (crc_value & 0x04 == 0x04)
         {
-            write_buffer ( REG_LR_FIFOADDRPTR, 0x00 );
-            sx1278_rlen = read_buffer( REG_LR_NBRXBYTES );
-            lp_type_func.lpSwitchEnStatus( EN_OPEN );
-            lp_type_func.lpByteWritefunc( 0x00 );
-            for ( i = 0; i < sx1278_rlen; i++ )
+            write_buffer (REG_LR_FIFOADDRPTR, 0x00);
+            sx1278_rlen = read_buffer(REG_LR_NBRXBYTES);
+            lp_type_func.lpSwitchEnStatus(EN_OPEN);
+            lp_type_func.lpByteWritefunc(0x00);
+            for (i = 0; i < sx1278_rlen; i++)
             {
-                if ( i < sizeof( recv_buffer ) )
+                if (i < sizeof(recv_buffer))
                 {
                     recv_buffer[i] = lp_type_func.lpByteReadfunc();
                 }
             }
-            lp_type_func.lpSwitchEnStatus( EN_CLOSE );
+            lp_type_func.lpSwitchEnStatus(EN_CLOSE);
         }
 
-        // Ω” ’µΩµƒ ˝æ›∫Õ≥§∂»∂º‘⁄recv¿Ô 
-        lp_type_func.lpRecvDataTousr( recv_buffer, sx1278_rlen );
+        lp_type_func.lpRecvDataTousr(recv_buffer, sx1278_rlen);
 
 #if 0
         // test add for rev rssi --- Received Signal Strength Indication
@@ -185,114 +183,112 @@ void sx1278_recv_handle( void )
         rece_count               = rece_count + 1;
 #endif
 
-        lora_set_op_mode( STDBY_MODE );
-        write_buffer( REG_LR_IRQFLAGSMASK, IRQN_RXD_Value );  // ¥Úø™∑¢ÀÕ÷–∂œ
-        write_buffer( REG_LR_HOPPERIOD,    PACKET_MIAX_Value );
-        write_buffer( REG_LR_DIOMAPPING1, 0X00 );
-        write_buffer( REG_LR_DIOMAPPING2, 0x00 );
-        lora_set_op_mode( RECEIVER_MODE );
-        lp_type_func.paSwitchCmdfunc( RX_OPEN );
+        lora_set_op_mode(STDBY_MODE);
+        write_buffer(REG_LR_IRQFLAGSMASK, IRQN_RXD_Value); 
+        write_buffer(REG_LR_HOPPERIOD,    PACKET_MIAX_Value);
+        write_buffer(REG_LR_DIOMAPPING1, 0X00);
+        write_buffer(REG_LR_DIOMAPPING2, 0x00);
+        lora_set_op_mode(RECEIVER_MODE);
+        lp_type_func.paSwitchCmdfunc(RX_OPEN);
     }
-    else if ( 0x08 == ( rf_ex0_status & 0x08 ) )
+    else if (0x08 == (rf_ex0_status & 0x08))
     {
-        // ±Ì æ ˝æ›“—æ≠∑¢ÀÕÕÍ±œ
-        lora_set_op_mode( STDBY_MODE );
-        write_buffer(REG_LR_IRQFLAGSMASK, IRQN_RXD_Value);  //¥Úø™∑¢ÀÕ÷–∂œ
-        write_buffer(REG_LR_HOPPERIOD,    PACKET_MIAX_Value );
-        write_buffer( REG_LR_DIOMAPPING1, 0X00 );
-        write_buffer( REG_LR_DIOMAPPING2, 0x00 );
-        lora_set_op_mode( RECEIVER_MODE );
-        lp_type_func.paSwitchCmdfunc( RX_OPEN );
+        lora_set_op_mode(STDBY_MODE);
+        write_buffer(REG_LR_IRQFLAGSMASK, IRQN_RXD_Value);  
+        write_buffer(REG_LR_HOPPERIOD,    PACKET_MIAX_Value);
+        write_buffer(REG_LR_DIOMAPPING1, 0X00);
+        write_buffer(REG_LR_DIOMAPPING2, 0x00);
+        lora_set_op_mode(RECEIVER_MODE);
+        lp_type_func.paSwitchCmdfunc(RX_OPEN);
     }
-    else if( 0x04 == ( rf_ex0_status & 0x04 ) )
+    else if(0x04 == (rf_ex0_status & 0x04))
     {
-        if ( 0x01 == ( rf_ex0_status&0x01 ) )
+        if (0x01 == (rf_ex0_status&0x01))
         {
-            // ±Ì æCAD ºÏ≤‚µΩ¿©∆µ–≈∫≈ ƒ£øÈΩ¯»Î¡ÀΩ” ’◊¥Ã¨¿¥Ω” ’ ˝æ›
-            lora_set_op_mode( STDBY_MODE );
-            write_buffer(REG_LR_IRQFLAGSMASK, IRQN_RXD_Value );  //¥Úø™∑¢ÀÕ÷–∂œ
-            write_buffer(REG_LR_HOPPERIOD,    PACKET_MIAX_Value );
-            write_buffer( REG_LR_DIOMAPPING1, 0X02 );
-            write_buffer( REG_LR_DIOMAPPING2, 0x00 );
-            lora_set_op_mode( RECEIVER_MODE );
-            lp_type_func.paSwitchCmdfunc( RX_OPEN );
+            lora_set_op_mode(STDBY_MODE);
+            write_buffer(REG_LR_IRQFLAGSMASK, IRQN_RXD_Value);  
+            write_buffer(REG_LR_HOPPERIOD,    PACKET_MIAX_Value);
+            write_buffer(REG_LR_DIOMAPPING1, 0X02);
+            write_buffer(REG_LR_DIOMAPPING2, 0x00);
+            lora_set_op_mode(RECEIVER_MODE);
+            lp_type_func.paSwitchCmdfunc(RX_OPEN);
         }
         else
-        {                           // √ªºÏ≤‚µΩ
-            lora_set_op_mode( STDBY_MODE );
-            write_buffer( REG_LR_IRQFLAGSMASK, IRQN_SEELP_Value );  //¥Úø™∑¢ÀÕ÷–∂œ
-            write_buffer( REG_LR_DIOMAPPING1, 0x00 );
-            write_buffer( REG_LR_DIOMAPPING2, 0x00 );
-            lora_set_op_mode( SLEEP_MODE );
+        {                          
+            lora_set_op_mode(STDBY_MODE);
+            write_buffer(REG_LR_IRQFLAGSMASK, IRQN_SEELP_Value);  
+            write_buffer(REG_LR_DIOMAPPING1, 0x00);
+            write_buffer(REG_LR_DIOMAPPING2, 0x00);
+            lora_set_op_mode(SLEEP_MODE);
             //PA_SEELP_OUT();
         }
     }
     else
     {
-        lora_set_op_mode( STDBY_MODE );
-        write_buffer( REG_LR_IRQFLAGSMASK,IRQN_RXD_Value );  //¥Úø™∑¢ÀÕ÷–∂œ
-        write_buffer( REG_LR_HOPPERIOD,   PACKET_MIAX_Value );
-        write_buffer( REG_LR_DIOMAPPING1, 0X02 );
-        write_buffer( REG_LR_DIOMAPPING2, 0x00 );
-        lora_set_op_mode( RECEIVER_MODE );
-        lp_type_func.paSwitchCmdfunc( RX_OPEN );
+        lora_set_op_mode(STDBY_MODE);
+        write_buffer(REG_LR_IRQFLAGSMASK,IRQN_RXD_Value);  
+        write_buffer(REG_LR_HOPPERIOD,   PACKET_MIAX_Value);
+        write_buffer(REG_LR_DIOMAPPING1, 0X02);
+        write_buffer(REG_LR_DIOMAPPING2, 0x00);
+        lora_set_op_mode(RECEIVER_MODE);
+        lp_type_func.paSwitchCmdfunc(RX_OPEN);
     }
 
-    write_buffer( REG_LR_IRQFLAGS, 0xff );
+    write_buffer(REG_LR_IRQFLAGS, 0xff);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 // static function.
 ////////////////////////////////////////////////////////////////////////////////
-// ”√¿¥º∆À„Loraƒ£ Ωœ¬µ±«∞rssi
+// ÔøΩÔøΩÔøΩÔøΩÔøΩÔøΩÔøΩLoraƒ£ ΩÔøΩ¬µÔøΩ«∞rssi
 #if 0
-static double lora_read_rssi( void )
+static double lora_read_rssi(void)
 {
     // reads the RSSI value
     uint8 rssi = 0;
-    rssi = read_buffer( REG_LR_RSSIVALUE );
+    rssi = read_buffer(REG_LR_RSSIVALUE);
 
     return rssi_offset_lf + (double)rssi;     // Lf=-164.0
 }
 
-// ∏√∫Ø ˝”√¿¥º∆À„Loraƒ£ Ωœ¬µ±«∞Ω” ’ ˝æ›∞¸µƒrssi
-static double lora_read_pack_rssi_value( void )
+// ÔøΩ√∫ÔøΩÔøΩÔøΩÔøΩÔøΩÔøΩÔøΩÔøΩÔøΩÔøΩLoraƒ£ ΩÔøΩ¬µÔøΩ«∞ÔøΩÔøΩÔøΩÔøΩÔøΩÔøΩ›∞ÔøΩÔøΩrssi
+static double lora_read_pack_rssi_value(void)
 {
-     uint8_t rx_snr_estimate = read_buffer( REG_LR_PKTSNRVALUE );
+     uint8_t rx_snr_estimate = read_buffer(REG_LR_PKTSNRVALUE);
 
-     if ( rx_snr_estimate & 0x80 ) // The SNR sign bit is 1
+     if (rx_snr_estimate & 0x80) // The SNR sign bit is 1
      {
          // Invert and divide by 4
-         rx_packet_snr_estimate = ( ( ~rx_snr_estimate + 1 ) & 0xFF ) >> 2;
+         rx_packet_snr_estimate = ((~rx_snr_estimate + 1) & 0xFF) >> 2;
          rx_packet_snr_estimate = - rx_packet_snr_estimate;
      }
      else
      {
          // Divide by 4
-         rx_packet_snr_estimate = ( rx_snr_estimate & 0xFF ) >> 2;
+         rx_packet_snr_estimate = (rx_snr_estimate & 0xFF) >> 2;
      }
 
 
-     if ( 1 )  // LF freq < 860MHZ
+     if (1)  // LF freq < 860MHZ
      {
-            if ( rx_packet_snr_estimate < 0 )
+            if (rx_packet_snr_estimate < 0)
             {
-                rx_packet_rssi_value = rssi_offset_lf + ( ( double )read_buffer( REG_LR_PKTRSSIVALUE ) ) + rx_packet_snr_estimate;
+                rx_packet_rssi_value = rssi_offset_lf + ((double)read_buffer(REG_LR_PKTRSSIVALUE)) + rx_packet_snr_estimate;
             }
             else
             {
-                rx_packet_rssi_value = rssi_offset_lf + ( 1.0666 * ( ( double )read_buffer( REG_LR_PKTRSSIVALUE ) ) );
+                rx_packet_rssi_value = rssi_offset_lf + (1.0666 * ((double)read_buffer(REG_LR_PKTRSSIVALUE)));
             }
      }
      else    // HF,freq>860mhz
      {
-            if ( rx_packet_snr_estimate < 0 )
+            if (rx_packet_snr_estimate < 0)
             {
-                rx_packet_rssi_value = rssi_offset_hf + ( ( double )read_buffer( REG_LR_PKTRSSIVALUE ) ) + rx_packet_snr_estimate;
+                rx_packet_rssi_value = rssi_offset_hf + ((double)read_buffer(REG_LR_PKTRSSIVALUE)) + rx_packet_snr_estimate;
             }
             else
             {
-                rx_packet_rssi_value = rssi_offset_hf + ( 1.0666 * ( ( double )read_buffer( REG_LR_PKTRSSIVALUE ) ) );
+                rx_packet_rssi_value = rssi_offset_hf + (1.0666 * ((double)read_buffer(REG_LR_PKTRSSIVALUE)));
             }
      }
 
@@ -313,182 +309,182 @@ static void rssi(void)
 
 static void fsk_send_packet(void)
 {
-    lora_set_op_mode( STDBY_MODE );
-    write_buffer( REG_LR_DIOMAPPING1, 0x01 );
-    write_buffer( REG_LR_DIOMAPPING2, 0x20 );
+    lora_set_op_mode(STDBY_MODE);
+    write_buffer(REG_LR_DIOMAPPING1, 0x01);
+    write_buffer(REG_LR_DIOMAPPING2, 0x20);
 }
 #endif
 
-static void write_buffer( uint8 addr, uint8 buffer )
+static void write_buffer(uint8 addr, uint8 buffer)
 {
     lp_type_func.lpSwitchEnStatus(EN_OPEN);    // NSS = 0;
-    lp_type_func.lpByteWritefunc( addr | 0x80 );
-    lp_type_func.lpByteWritefunc( buffer);
-    lp_type_func.lpSwitchEnStatus( EN_CLOSE ); // NSS = 1;
+    lp_type_func.lpByteWritefunc(addr | 0x80);
+    lp_type_func.lpByteWritefunc(buffer);
+    lp_type_func.lpSwitchEnStatus(EN_CLOSE); // NSS = 1;
 }
 
-static uint8 read_buffer( uint8 addr )
+static uint8 read_buffer(uint8 addr)
 {
     uint8 value;
 
-    lp_type_func.lpSwitchEnStatus( EN_OPEN ); // NSS = 0;
-    lp_type_func.lpByteWritefunc( addr & 0x7f  );
+    lp_type_func.lpSwitchEnStatus(EN_OPEN); // NSS = 0;
+    lp_type_func.lpByteWritefunc(addr & 0x7f );
     value = lp_type_func.lpByteReadfunc();
-    lp_type_func.lpSwitchEnStatus( EN_CLOSE );// NSS = 1;
+    lp_type_func.lpSwitchEnStatus(EN_CLOSE);// NSS = 1;
 
     return value;
 }
 
-static void lora_set_op_mode( RFMODE_SET opMode )
+static void lora_set_op_mode(RFMODE_SET opMode)
 {
    uint8 op_mode_prev;
-   op_mode_prev = read_buffer( REG_LR_OPMODE );
+   op_mode_prev = read_buffer(REG_LR_OPMODE);
    op_mode_prev &= 0xf8;
    op_mode_prev |= (uint8)opMode;
-   write_buffer( REG_LR_OPMODE, op_mode_prev );
+   write_buffer(REG_LR_OPMODE, op_mode_prev);
 }
 
-static void lora_fsk( DEBUGGING_FSK_OOK opMode )
+static void lora_fsk(DEBUGGING_FSK_OOK opMode)
 {
    uint8 op_mode_prev;
-   op_mode_prev = read_buffer( REG_LR_OPMODE );
+   op_mode_prev = read_buffer(REG_LR_OPMODE);
    op_mode_prev &=0x7F;
    op_mode_prev |= (uint8)opMode;
-   write_buffer( REG_LR_OPMODE, op_mode_prev );
+   write_buffer(REG_LR_OPMODE, op_mode_prev);
 }
 
-static void lora_set_rf_frequency( void )
+static void lora_set_rf_frequency(void)
 {
-   write_buffer( REG_LR_FRFMSB, frequency[0] );
-   write_buffer( REG_LR_FRFMID, frequency[1] );
-   write_buffer( REG_LR_FRFLSB, frequency[2] );
+   write_buffer(REG_LR_FRFMSB, frequency[0]);
+   write_buffer(REG_LR_FRFMID, frequency[1]);
+   write_buffer(REG_LR_FRFLSB, frequency[2]);
 }
 
-static void lora_set_rf_power( uint8 power )
+static void lora_set_rf_power(uint8 power)
 {
-   write_buffer( REG_LR_PADAC, 0x87 );
-   write_buffer( REG_LR_PACONFIG, power_data[power] );
+   write_buffer(REG_LR_PADAC, 0x87);
+   write_buffer(REG_LR_PACONFIG, power_data[power]);
 }
 
-static void lora_set_spreading_factor( uint8 factor )
-{
-   uint8 recv_data;
-   lora_set_nb_trig_peaks( 3 );
-   recv_data = read_buffer( REG_LR_MODEMCONFIG2);
-   recv_data = ( recv_data & RFLR_MODEMCONFIG2_SF_MASK ) | ( factor << 4 );
-   write_buffer( REG_LR_MODEMCONFIG2, recv_data );
-}
-
-static void lora_set_nb_trig_peaks( uint8 value )
+static void lora_set_spreading_factor(uint8 factor)
 {
    uint8 recv_data;
-   recv_data = read_buffer( 0x31);
-   recv_data = ( recv_data & 0xF8 ) | value;
-   write_buffer( 0x31, recv_data );
+   lora_set_nb_trig_peaks(3);
+   recv_data = read_buffer(REG_LR_MODEMCONFIG2);
+   recv_data = (recv_data & RFLR_MODEMCONFIG2_SF_MASK) | (factor << 4);
+   write_buffer(REG_LR_MODEMCONFIG2, recv_data);
 }
 
-static void lora_set_error_coding( uint8 value )
+static void lora_set_nb_trig_peaks(uint8 value)
 {
    uint8 recv_data;
-   recv_data = read_buffer( REG_LR_MODEMCONFIG1);
-   recv_data = ( recv_data & RFLR_MODEMCONFIG1_CODINGRATE_MASK ) | ( value << 1 );
-   write_buffer( REG_LR_MODEMCONFIG1, recv_data);
+   recv_data = read_buffer(0x31);
+   recv_data = (recv_data & 0xF8) | value;
+   write_buffer(0x31, recv_data);
+}
+
+static void lora_set_error_coding(uint8 value)
+{
+   uint8 recv_data;
+   recv_data = read_buffer(REG_LR_MODEMCONFIG1);
+   recv_data = (recv_data & RFLR_MODEMCONFIG1_CODINGRATE_MASK) | (value << 1);
+   write_buffer(REG_LR_MODEMCONFIG1, recv_data);
    // LoRaset_tings.ErrorCoding = value;
 }
 
-static void lora_set_packet_crc_on( boolean enable )
+static void lora_set_packet_crc_on(boolean enable)
 {
    uint8 recv_data;
-   recv_data = read_buffer( REG_LR_MODEMCONFIG2);
-   recv_data = ( recv_data & RFLR_MODEMCONFIG2_RXPAYLOADCRC_MASK ) | ( enable << 2 );
+   recv_data = read_buffer(REG_LR_MODEMCONFIG2);
+   recv_data = (recv_data & RFLR_MODEMCONFIG2_RXPAYLOADCRC_MASK) | (enable << 2);
 
-   write_buffer( REG_LR_MODEMCONFIG2, recv_data );
+   write_buffer(REG_LR_MODEMCONFIG2, recv_data);
 }
 
-static void lora_set_signal_bandwidth( uint8 bw )
+static void lora_set_signal_bandwidth(uint8 bw)
 {
    uint8 recv_data;
-   recv_data = read_buffer( REG_LR_MODEMCONFIG1);
-   recv_data = ( recv_data & RFLR_MODEMCONFIG1_BW_MASK ) | ( bw << 4 );
-   write_buffer( REG_LR_MODEMCONFIG1, recv_data );   
+   recv_data = read_buffer(REG_LR_MODEMCONFIG1);
+   recv_data = (recv_data & RFLR_MODEMCONFIG1_BW_MASK) | (bw << 4);
+   write_buffer(REG_LR_MODEMCONFIG1, recv_data);   
 }
 
-static void lora_set_implicit_header_on(boolean enable )
+static void lora_set_implicit_header_on(boolean enable)
 {
    uint8 recv_data;
-   recv_data = read_buffer( REG_LR_MODEMCONFIG1 );
-   recv_data = ( ( recv_data & RFLR_MODEMCONFIG1_IMPLICITHEADER_MASK ) | ( enable ) );
+   recv_data = read_buffer(REG_LR_MODEMCONFIG1);
+   recv_data = ((recv_data & RFLR_MODEMCONFIG1_IMPLICITHEADER_MASK) | (enable));
 
-   write_buffer( REG_LR_MODEMCONFIG1, recv_data );
+   write_buffer(REG_LR_MODEMCONFIG1, recv_data);
 }
 
-static void lora_set_symb_timeout( uint32 value )
+static void lora_set_symb_timeout(uint32 value)
 {
    uint8 recv_data[2];
 
-   recv_data[0] = read_buffer( REG_LR_MODEMCONFIG2 );
-   recv_data[1] = read_buffer( REG_LR_SYMBTIMEOUTLSB );
-   recv_data[0] = ( ( recv_data[0] & RFLR_MODEMCONFIG2_SYMBTIMEOUTMSB_MASK ) |
-                    ( ( value >> 8 ) & ~RFLR_MODEMCONFIG2_SYMBTIMEOUTMSB_MASK ) );
+   recv_data[0] = read_buffer(REG_LR_MODEMCONFIG2);
+   recv_data[1] = read_buffer(REG_LR_SYMBTIMEOUTLSB);
+   recv_data[0] = ((recv_data[0] & RFLR_MODEMCONFIG2_SYMBTIMEOUTMSB_MASK) |
+                    ((value >> 8) & ~RFLR_MODEMCONFIG2_SYMBTIMEOUTMSB_MASK));
    recv_data[1] = value & 0xFF;
-   write_buffer( REG_LR_MODEMCONFIG2, recv_data[0] );
-   write_buffer( REG_LR_SYMBTIMEOUTLSB, recv_data[1] );
+   write_buffer(REG_LR_MODEMCONFIG2, recv_data[0]);
+   write_buffer(REG_LR_SYMBTIMEOUTLSB, recv_data[1]);
 }
 
-static void lora_set_payload_length( uint8 value )
+static void lora_set_payload_length(uint8 value)
 {
-   write_buffer( REG_LR_PAYLOADLENGTH, value );
+   write_buffer(REG_LR_PAYLOADLENGTH, value);
 }
 
 #if 0
-static void lora_set_pream_length( uint32 value )
+static void lora_set_pream_length(uint32 value)
 {
     uint8 buf[2];
     buf[0] = (value&0xff00)>>8;
     buf[1] = value&0xff;
-    write_buffer( REG_LR_PREAMBLEMSB, buf[0] );
-    write_buffer( REG_LR_PREAMBLELSB, buf[1] );
+    write_buffer(REG_LR_PREAMBLEMSB, buf[0]);
+    write_buffer(REG_LR_PREAMBLELSB, buf[1]);
 }
 #endif
 
-static void lora_set_mobile_node( boolean enable )
+static void lora_set_mobile_node(boolean enable)
 {
    uint8 recv_data;
-   recv_data = read_buffer( REG_LR_MODEMCONFIG3 );
-   recv_data = ( ( recv_data & RFLR_MODEMCONFIG3_MOBILE_NODE_MASK ) | ( enable << 3 ) );
-   write_buffer( REG_LR_MODEMCONFIG3, recv_data );
+   recv_data = read_buffer(REG_LR_MODEMCONFIG3);
+   recv_data = ((recv_data & RFLR_MODEMCONFIG3_MOBILE_NODE_MASK) | (enable << 3));
+   write_buffer(REG_LR_MODEMCONFIG3, recv_data);
 }
 
-static void rf_receive( void )
+static void rf_receive(void)
 {
-   lora_set_op_mode( STDBY_MODE );
-   write_buffer( REG_LR_IRQFLAGSMASK,IRQN_RXD_Value );   // ¥Úø™∑¢ÀÕ÷–∂œ
-   write_buffer( REG_LR_HOPPERIOD,  PACKET_MIAX_Value );
-   write_buffer( REG_LR_DIOMAPPING1, 0x00 );
-   write_buffer( REG_LR_DIOMAPPING2, 0x00 );
-   lora_set_op_mode( RECEIVER_MODE );
-   lp_type_func.paSwitchCmdfunc( RX_OPEN );
+   lora_set_op_mode(STDBY_MODE);
+   write_buffer(REG_LR_IRQFLAGSMASK,IRQN_RXD_Value);  
+   write_buffer(REG_LR_HOPPERIOD,  PACKET_MIAX_Value);
+   write_buffer(REG_LR_DIOMAPPING1, 0x00);
+   write_buffer(REG_LR_DIOMAPPING2, 0x00);
+   lora_set_op_mode(RECEIVER_MODE);
+   lp_type_func.paSwitchCmdfunc(RX_OPEN);
 }
 
 #if 0
 static void rf_cad_receive (void)
 {
-   lora_set_op_mode( STDBY_MODE );
-   write_buffer(REG_LR_IRQFLAGSMASK,  IRQN_CAD_Value);  //¥Úø™∑¢ÀÕ÷–∂œ
-   write_buffer( REG_LR_DIOMAPPING1, 0X80 );
-   write_buffer( REG_LR_DIOMAPPING2, 0X00 );
-   lora_set_op_mode( CAD_MODE );
-   lp_type_func.paSwitchCmdfunc( RX_OPEN );
+   lora_set_op_mode(STDBY_MODE);
+   write_buffer(REG_LR_IRQFLAGSMASK,  IRQN_CAD_Value); 
+   write_buffer(REG_LR_DIOMAPPING1, 0X80);
+   write_buffer(REG_LR_DIOMAPPING2, 0X00);
+   lora_set_op_mode(CAD_MODE);
+   lp_type_func.paSwitchCmdfunc(RX_OPEN);
 }
 #endif
 
 #if 0
 static void rf_sleep(void)
 {
-    lora_set_op_mode( STDBY_MODE );
-    write_buffer( REG_LR_IRQFLAGSMASK,  IRQN_SEELP_Value);  //¥Úø™∑¢ÀÕ÷–∂œ
-    write_buffer( REG_LR_DIOMAPPING1, 0X00 );
-    write_buffer( REG_LR_DIOMAPPING2, 0X00 );
-    lora_set_op_mode( SLEEP_MODE );
+    lora_set_op_mode(STDBY_MODE);
+    write_buffer(REG_LR_IRQFLAGSMASK,  IRQN_SEELP_Value); 
+    write_buffer(REG_LR_DIOMAPPING1, 0X00);
+    write_buffer(REG_LR_DIOMAPPING2, 0X00);
+    lora_set_op_mode(SLEEP_MODE);
 }
 #endif

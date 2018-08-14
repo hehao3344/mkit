@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+
 #include "user_interface.h"
 #include "ets_sys.h"
 #include "os_type.h"
@@ -10,9 +11,11 @@
 #include "driver/uart.h"
 #include "../core/mem_mgr.h"
 #include "../device/flash_param.h"
+#include "../device/sx1276_hal.h"
 #include "../network/wifi.h"
 #include "../network/discovery.h"
-#include "../tcp/tcp_client.h"
+#include "../crypto/crypto_api.h"
+// #include "../tcp/tcp_client.h"
 #include "../tcp/tcp_server.h"
 #include "delay.h"
 #include "user_plug.h"
@@ -53,11 +56,10 @@ static void ICACHE_FLASH_ATTR net_led_center(void *arg);
 static void ICACHE_FLASH_ATTR key_long_press(void);
 static void ICACHE_FLASH_ATTR key_short_press(void);
 static void ICACHE_FLASH_ATTR tcp_recv_data_callback(void *arg, char *buffer, unsigned short length);
+static void ICACHE_FLASH_ATTR recv_data_fn(char *buffer, unsigned short len);
 
 boolean ICACHE_FLASH_ATTR schedule_create(uint16 smart_config)
 {
-    int8 *plan = mem_mgr_get_ptr( 0 );
-
     SCHEDULE_OBJECT * handle = instance();
 
     user_switch_init();
@@ -80,7 +82,8 @@ boolean ICACHE_FLASH_ATTR schedule_create(uint16 smart_config)
         flash_param_get_dev_uuid(i, handle->dev_uuid[i], sizeof(handle->dev_uuid[i]));
     }
     crypto_api_cbc_set_key(KEY_PASSWORD, strlen(KEY_PASSWORD));
-
+    sx1276_hal_set_recv_cb(recv_data_fn);    
+    
     os_timer_disarm(&handle->sys_timer);
     os_timer_setfn(&handle->sys_timer, (os_timer_func_t *)system_timer_center, handle);
     os_timer_arm(&handle->sys_timer, 1000, 1); // 0 at once, 1 restart auto.
@@ -89,15 +92,15 @@ boolean ICACHE_FLASH_ATTR schedule_create(uint16 smart_config)
     os_timer_setfn(&handle->net_led_timer, (os_timer_func_t *)net_led_center, handle);
     os_timer_arm(&handle->net_led_timer, 100, 1);
 
-    tcp_client_create();
-    tcp_client_set_callback(tcp_recv_data_callback, handle);
+    //tcp_client_create();
+    //tcp_client_set_callback(tcp_recv_data_callback, handle);
 
     char mac[24] = {0};
     wifi_get_macaddr(STATION_IF, mac);
     memset(handle->mac, 0, sizeof(handle->mac));
   	os_sprintf(handle->mac, MACSTR, MAC2STR(mac));
 
-    uint8 i, j;
+    int j;
     for (i=0,j=0; i<12;)
     {
         handle->mac[i]   = handle->mac[j];
@@ -186,6 +189,8 @@ static void system_timer_center( void *arg )
             os_sprintf(handle->send_buf, SYNC_TIME, handle->dev_uuid[i], req_id, handle->sys_sec);
             
             crypto_api_encrypt_buffer(handle->send_buf, sizeof(handle->send_buf));
+
+            sx1276_hal_rf_send_packet(handle->send_buf, (unsigned char)sizeof(handle->send_buf));
             /* 发送到子设备 */
         }
     }    
@@ -269,4 +274,13 @@ static void ICACHE_FLASH_ATTR key_long_press( void )
 
     system_restore();
     system_restart();
+}
+
+static void ICACHE_FLASH_ATTR recv_data_fn(char *buffer, unsigned short len)
+{
+    os_printf("recv from sx1278 [%s] len %d \n", buffer, len);
+    if (len > 0)
+    {
+        
+    }
 }

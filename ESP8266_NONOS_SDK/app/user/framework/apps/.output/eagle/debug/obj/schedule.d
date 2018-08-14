@@ -28,7 +28,8 @@
  ../../../../include/eagle_soc.h ../../../../include/c_types.h \
  ../core/mem_mgr.h ../core/core.h ../core/msc_types.h ../core/debug.h \
  ../core/mem_mgr.h ../core/msc_list.h ../core/protocol.h \
- ../device/flash_param.h ../network/wifi.h ../network/../core/core.h \
- ../network/discovery.h ../tcp/tcp_client.h ../tcp/../core/core.h \
- ../tcp/tcp_server.h delay.h ../core/core.h user_plug.h \
- ../../../include/driver/key.h ../../../../include/gpio.h schedule.h
+ ../device/flash_param.h ../device/sx1276_hal.h ../device/../core/core.h \
+ ../network/wifi.h ../network/../core/core.h ../network/discovery.h \
+ ../crypto/crypto_api.h ../tcp/tcp_server.h delay.h ../core/core.h \
+ user_plug.h ../../../include/driver/key.h ../../../../include/gpio.h \
+ schedule.h
