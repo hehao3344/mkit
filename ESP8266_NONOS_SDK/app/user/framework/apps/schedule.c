@@ -189,9 +189,8 @@ static void system_timer_center( void *arg )
             os_sprintf(handle->send_buf, SYNC_TIME, handle->dev_uuid[i], req_id, handle->sys_sec);
             
             crypto_api_encrypt_buffer(handle->send_buf, sizeof(handle->send_buf));
-
-            sx1276_hal_rf_send_packet(handle->send_buf, (unsigned char)sizeof(handle->send_buf));
-            /* 发送到子设备 */
+             /* 发送到子设备 */
+            sx1276_hal_rf_send_packet(handle->send_buf, (unsigned char)sizeof(handle->send_buf));           
         }
     }    
 
@@ -244,18 +243,34 @@ static void net_led_center(void *arg)
  * Parameters   : none
  * Returns      : none
 *******************************************************************************/
+#define SET_MATCH_MSG  "{\
+\"method\":\"down_msg\",\
+\"dev_uuid\":\"FFFFFFFFFFFF\",\
+\"req_id\":%d,\
+\"ts\":%d,\
+\"attr\":\
+{\
+\"cmd\":\"set_match\":\
+{\
+}\
+}\
+}"
+
 static void ICACHE_FLASH_ATTR key_short_press( void )
 {
     SCHEDULE_OBJECT * handle = instance();
-
-    handle->switch_level = (~handle->switch_level)&0x01;
-    if (0x00 == (handle->switch_level&0x01))
-    {
-        handle->off_count = 0;
-    }
-    user_switch_output(handle->switch_level);
-
-    os_printf("short press level is %d \n", handle->switch_level);
+    int i;
+    int req_id = (int)rand();
+    for (i=0; i<MAX_SUB_DEV_COUNT; i++)
+    {            
+        /* 每隔XX秒同步一次时间 */
+        os_memset(handle->send_buf, 0, sizeof(handle->send_buf));
+        os_sprintf(handle->send_buf, SET_MATCH_MSG, handle->dev_uuid[i], req_id, handle->sys_sec);
+        
+        crypto_api_encrypt_buffer(handle->send_buf, sizeof(handle->send_buf));
+         /* 发送到子设备 */
+        sx1276_hal_rf_send_packet(handle->send_buf, (unsigned char)sizeof(handle->send_buf));       
+    }    
 }
 
 /******************************************************************************
@@ -270,7 +285,7 @@ static void ICACHE_FLASH_ATTR key_long_press( void )
 
     //flash_param_default_restore();
     //user_esp_platform_set_active(0);
-    // flash_param_set_id(CONFIG_RESET_ID);
+    //flash_param_set_id(CONFIG_RESET_ID);
 
     system_restore();
     system_restart();
@@ -281,6 +296,6 @@ static void ICACHE_FLASH_ATTR recv_data_fn(char *buffer, unsigned short len)
     os_printf("recv from sx1278 [%s] len %d \n", buffer, len);
     if (len > 0)
     {
-        
+        tcp_server_send_msg(buffer, (int)len);
     }
 }

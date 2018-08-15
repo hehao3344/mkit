@@ -212,7 +212,8 @@ LOCAL int ICACHE_FLASH_ATTR msg_parse(struct jsontree_context *js_ctx, struct js
                 }
                 else if ((0 == os_strcmp("set_switch", buffer)) || (0 == os_strcmp("get_all_property", buffer)))
                 {
-                    /* 找到对应的dev 将消息发送到该设备 */                    
+                    /* 找到对应的dev 将消息发送到该设备 */   
+                                     
                     char * resp_buf = (char *)os_malloc(128);
                     if (NULL != resp_buf)
                     {
