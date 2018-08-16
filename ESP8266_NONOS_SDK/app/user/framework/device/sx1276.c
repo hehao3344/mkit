@@ -20,7 +20,7 @@ static uint8   coding_rate = 2;         // 1-4
 static uint8   bw_frequency = 3;    // 20.8K
 
 static uint8   power_value  = 7;
-static uint8   power_data[8] = { 0x80, 0x80, 0x80, 0x83, 0x86, 0x89, 0x8c, 0x8f };
+static uint8   power_data[8] = {0x80, 0x80, 0x80, 0x83, 0x86, 0x89, 0x8c, 0x8f};
 
 //static double rssi_offset_lf = -164.0;         // 800mhz
 //static double rssi_offset_hf = -157.0;         // 800mhz
@@ -33,7 +33,7 @@ static uint8   power_data[8] = { 0x80, 0x80, 0x80, 0x83, 0x86, 0x89, 0x8c, 0x8f 
 //static int    rece_count = 0;
 //
 static uint8  recv_buffer[16];
-static lpCtrlTypefunc_t lp_type_func = { 0, 0, 0, 0, 0 };
+static lpCtrlTypefunc_t lp_type_func = {0, 0, 0, 0, 0};
 
 static void write_buffer(uint8 addr, uint8 buffer);
 static uint8 read_buffer(uint8 addr);
@@ -75,9 +75,9 @@ void rx1276_rf_send_packet(uint8 *rf_tran_buf, uint8 len)
 
     lp_type_func.paSwitchCmdfunc(TX_OPEN);
     lora_set_op_mode(STDBY_MODE);
-    write_buffer(REG_LR_HOPPERIOD, 0);                 // ����Ƶ�����?
-    write_buffer(REG_LR_IRQFLAGSMASK, IRQN_TXD_Value);   // �򿪷����ж�
-    write_buffer(REG_LR_PAYLOADLENGTH, len);             // �����ݰ�
+    write_buffer(REG_LR_HOPPERIOD, 0);                   // 
+    write_buffer(REG_LR_IRQFLAGSMASK, IRQN_TXD_Value);   //  
+    write_buffer(REG_LR_PAYLOADLENGTH, len);             // 
     write_buffer(REG_LR_FIFOTXBASEADDR, 0);
     write_buffer(REG_LR_FIFOADDRPTR, 0);
 
@@ -91,8 +91,8 @@ void rx1276_rf_send_packet(uint8 *rf_tran_buf, uint8 len)
     }
 
     lp_type_func.lpSwitchEnStatus(EN_CLOSE);
-    write_buffer(REG_LR_DIOMAPPING1,0x40);
-    write_buffer(REG_LR_DIOMAPPING2,0x00);
+    write_buffer(REG_LR_DIOMAPPING1, 0x40);
+    write_buffer(REG_LR_DIOMAPPING2, 0x00);
     lora_set_op_mode(TRANSMITTER_MODE);
 }
 
@@ -240,7 +240,6 @@ void sx1278_recv_handle(void)
 ////////////////////////////////////////////////////////////////////////////////
 // static function.
 ////////////////////////////////////////////////////////////////////////////////
-// �������Loraģʽ�µ�ǰrssi
 #if 0
 static double lora_read_rssi(void)
 {
@@ -251,7 +250,6 @@ static double lora_read_rssi(void)
     return rssi_offset_lf + (double)rssi;     // Lf=-164.0
 }
 
-// �ú����������Loraģʽ�µ�ǰ������ݰ��rssi
 static double lora_read_pack_rssi_value(void)
 {
      uint8_t rx_snr_estimate = read_buffer(REG_LR_PKTSNRVALUE);
