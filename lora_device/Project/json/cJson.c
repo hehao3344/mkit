@@ -129,18 +129,29 @@ static const char *parse_number(cJSON *item,const char *num)
     return num;
 }
 
-static int pow2gt (int x)   {   --x;    x|=x>>1;    x|=x>>2;    x|=x>>4;    x|=x>>8;    x|=x>>16;   return x+1; }
+//static int pow2gt (int x)   
+static int pow2gt (long x)   
+{   
+    --x;    
+    x|=x>>1;    
+    x|=x>>2;    
+    x|=x>>4;    
+    x|=x>>8;    
+    x|=x>>16;   
+
+    return x+1; 
+}
 
 typedef struct {char *buffer; int length; int offset; } printbuffer;
 
-static char* ensure(printbuffer *p,int needed)
+static char* ensure(printbuffer *p, int needed)
 {
     char *newbuffer;int newsize;
     if (!p || !p->buffer) return 0;
     needed+=p->offset;
     if (needed<=p->length) return p->buffer+p->offset;
 
-    newsize=pow2gt(needed);
+    newsize=pow2gt((long)needed);
     newbuffer=(char*)cJSON_malloc(newsize);
     if (!newbuffer) {cJSON_free(p->buffer);p->length=0,p->buffer=0;return 0;}
     if (newbuffer) memcpy(newbuffer,p->buffer,p->length);
@@ -159,7 +170,7 @@ static int update(printbuffer *p)
 }
 
 /* Render the number nicely from the given item into a string. */
-static char *print_number(cJSON *item,printbuffer *p)
+static char *print_number(cJSON *item, printbuffer *p)
 {
     char *str=0;
     double d=item->valuedouble;
@@ -189,9 +200,14 @@ static char *print_number(cJSON *item,printbuffer *p)
         else    str=(char*)cJSON_malloc(64);    /* This is a nice tradeoff. */
         if (str)
         {
-            if (fabs(floor(d)-d)<=DBL_EPSILON && fabs(d)<1.0e60)sprintf(str,"%.0f",d);
-            else if (fabs(d)<1.0e-6 || fabs(d)>1.0e9)           sprintf(str,"%e",d);
-            else                                                sprintf(str,"%f",d);
+            //if (fabs(floor(d)-d)<=DBL_EPSILON && fabs(d)<1.0e60)
+            /* modified by hehao */
+            if (fabs(floor(d)-d)<=DBL_EPSILON && fabs(d)<1.0e20)
+                sprintf(str,"%.0f",d);
+            else if (fabs(d)<1.0e-6 || fabs(d)>1.0e9)           
+                sprintf(str,"%e",d);
+            else                                                
+                sprintf(str,"%f",d);
         }
     }
     return str;
@@ -214,7 +230,7 @@ static unsigned parse_hex4(const char *str)
 static const unsigned char firstByteMark[7] = { 0x00, 0x00, 0xC0, 0xE0, 0xF0, 0xF8, 0xFC };
 static const char *parse_string(cJSON *item,const char *str)
 {
-    const char *ptr=str+1;char *ptr2;char *out;int len=0;unsigned uc,uc2;
+    const char *ptr=str+1;char *ptr2;char *out;int len=0;unsigned long uc,uc2;
     if (*str!='\"') {ep=str;return 0;}  /* not a string! */
 
     while (*ptr!='\"' && *ptr && ++len) if (*ptr++ == '\\') ptr++;  /* Skip escaped quotes. */
@@ -371,8 +387,9 @@ char *cJSON_PrintBuffered(cJSON *item,int prebuffer,int fmt)
     p.buffer=(char*)cJSON_malloc(prebuffer);
     p.length=prebuffer;
     p.offset=0;
+    
     return print_value(item,0,fmt,&p);
-    return p.buffer;
+    // return p.buffer;
 }
 
 

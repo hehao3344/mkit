@@ -10,7 +10,7 @@ extern "C"
 
 typedef struct _PACKET_HEAD
 {
-    int magic;                  /* 魔术字 0x21222324 */
+    long magic;                  /* 魔术字 0x21222324 */
     unsigned short len;         /* 总长度 不包括头 */
     unsigned short valid_len;   /* 有效数据长度 不包括头 */
     char data[0];

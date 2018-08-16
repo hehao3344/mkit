@@ -1,8 +1,9 @@
+#include <string.h>
 #include "stm8s.h"
 #include "sx1276.h"
 #include "sx1276_hal.h"
     
-static RfPlugResult cur_rf_result = { 0, 0, { 0, 0, 0, 0 }, 0 };
+static recv_data_callback recv_cb = NULL;
 
 static void  fn_send_byte( uint8 out );
 static uint8 fn_spi_read_byte( void );
@@ -30,6 +31,11 @@ void sx1276_hal_reset( void )
     sx1276_delay_1s( 500 );
 }
 
+void sx1276_hal_set_recv_cb(recv_data_callback cb)
+{
+    recv_cb = cb;
+}
+
 void sx1276_hal_register_rf_func( void )
 {
     rx1276_register_rf_func( &ctrlTypefunc );
@@ -38,24 +44,6 @@ void sx1276_hal_register_rf_func( void )
 void sx1276_hal_rf_send_packet( uint8 *rf_tran_buf, uint8 len )
 {
     rx1276_rf_send_packet( rf_tran_buf, len );
-}
-
-RfPlugResult * sx1276_hal_get_rf_result( void )
-{
-    return &cur_rf_result;
-}
-
-void sx1276_hal_clear_rf_result( void )
-{
-    cur_rf_result.switch_invalid = 0;  
-    cur_rf_result.switch_on_off  = 0;
-
-    cur_rf_result.mac[0] = 0;
-    cur_rf_result.mac[1] = 0;
-    cur_rf_result.mac[2] = 0;
-    cur_rf_result.mac[3] = 0;
-    cur_rf_result.address = 0;
- 
 }
 
 void sx1276_hal_rx_mode( void )
@@ -154,20 +142,12 @@ static void fn_cmd_switch_pa( CmdPaType_t cmd )
 }
 
 // 接收到RF的数据
-static void fn_fqc_recv_data( uint8 *buffer, uint16 len )
+static void fn_fqc_recv_data(uint8 *buffer, uint16 len)
 {
-    RfPlugResult * rf_device_result = protocol_device_resolve_data( buffer, len );
-
-    if ( NULL != rf_device_result )
+    
+    printf("get buf %s len %d \n", buffer, len);
+    if (NULL != recv_cb)
     {
-        cur_rf_result.switch_invalid = rf_device_result->switch_invalid;
-        cur_rf_result.switch_on_off  = rf_device_result->switch_on_off;
-        
-        cur_rf_result.mac[0]         = rf_device_result->mac[0];
-        cur_rf_result.mac[1]         = rf_device_result->mac[1];
-        cur_rf_result.mac[2]         = rf_device_result->mac[2];
-        cur_rf_result.mac[3]         = rf_device_result->mac[3];
-
-        cur_rf_result.address        = rf_device_result->address;
+        recv_cb((char *)buffer, len);
     }
 }

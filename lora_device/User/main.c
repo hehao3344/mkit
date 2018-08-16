@@ -10,7 +10,7 @@ void main( void )
     {
         sys_mgr_send_msg();          // 每500ms发送一次
             
-        sys_mgr_handle_remote_msg(); // 处理远程消息
+        // sys_mgr_handle_remote_msg(); // 处理远程消息
     }
 }
 

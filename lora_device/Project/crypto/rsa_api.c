@@ -1,9 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
-
-#include "os_type.h"
-#include "osapi.h"
-#include "mem.h"
+#include <stdio.h>
 
 #include "rsa.h"
 #include "rsa_api.h"
@@ -15,18 +12,18 @@ int rsa_api_gen_keys(char *pub_key, int len1, char *priv_key, int len2)
 {
     if ((len1 <= (PUB_KEY_LEN+1)) || (len2 <= (PRI_KEY_LEN+1)))
     {
-        os_printf("invalid len %d %d \n", len1, len2);
+        printf("invalid len %d %d \n", len1, len2);
         return -1;
     }
     struct public_key_class pub;
     struct private_key_class priv;
   
     rsa_gen_keys(&pub, &priv);    
-    os_printf("get pub %lld %lld \n", pub.modulus,  pub.exponent);
-    os_printf("get pri %lld %lld \n", priv.modulus,  priv.exponent);
+    printf("get pub %lld %lld \n", pub.modulus,  pub.exponent);
+    printf("get pri %lld %lld \n", priv.modulus,  priv.exponent);
 
-    os_sprintf(pub_key,  "%032lld%032lld", pub.modulus,  pub.exponent);    
-    os_sprintf(priv_key, "%032lld%032lld", priv.modulus, priv.exponent);
+    sprintf(pub_key,  "%032lld%032lld", pub.modulus,  pub.exponent);    
+    sprintf(priv_key, "%032lld%032lld", priv.modulus, priv.exponent);
     
     return 0;
 }
@@ -36,7 +33,7 @@ long long * rsa_api_encrypt_buffer(char *pub_key, int buf_len, char * buffer, in
 {   
     if ((NULL == pub_key) || (buf_len < PUB_KEY_LEN*2))
     {
-        os_printf("invalid param \n");
+        printf("invalid param \n");
         return NULL;
     }
     
@@ -53,7 +50,7 @@ long long * rsa_api_encrypt_buffer(char *pub_key, int buf_len, char * buffer, in
     }
     if (i >= PUB_KEY_LEN)
     {
-        os_printf("string invalid \n");
+        printf("string invalid \n");
         return NULL;
     }
     memcpy(mod_buf, &pub_key[i], PUB_KEY_LEN - i);
@@ -67,7 +64,7 @@ long long * rsa_api_encrypt_buffer(char *pub_key, int buf_len, char * buffer, in
     }
     if (i >= PUB_KEY_LEN*2)
     {
-        os_printf("string invalid \n");
+        printf("string invalid \n");
         return NULL;
     }    
     memcpy(exp_buf, &pub_key[i], PUB_KEY_LEN*2 - i);    
@@ -80,12 +77,12 @@ long long * rsa_api_encrypt_buffer(char *pub_key, int buf_len, char * buffer, in
     //os_sscanf(mod_buf, "%lld", &pub.modulus);
     //os_sscanf(exp_buf, "%lld", &pub.exponent);
     
-    os_printf("get pub %lld %lld \n", pub.modulus, pub.exponent);
+    printf("get pub %lld %lld \n", pub.modulus, pub.exponent);
       
     long long *encrypted = rsa_encrypt(buffer, len, &pub);
     if (NULL == encrypted)
     {
-        os_printf("rsa enc failed \n");
+        printf("rsa enc failed \n");
         return NULL;
     }
     
@@ -97,7 +94,7 @@ char * rsa_api_decrypt_buffer(char *pri_key, int buf_len, long long * buffer, in
 {   
     if ((NULL == pri_key) || (buf_len < PRI_KEY_LEN*2))
     {
-        os_printf("invalid param \n");
+        printf("invalid param \n");
         return NULL;
     }
     
@@ -114,7 +111,7 @@ char * rsa_api_decrypt_buffer(char *pri_key, int buf_len, long long * buffer, in
     }
     if (i >= PUB_KEY_LEN)
     {
-        os_printf("string invalid \n");
+        printf("string invalid \n");
         return NULL;
     }
     memcpy(mod_buf, &pri_key[i], PRI_KEY_LEN - i);
@@ -128,7 +125,7 @@ char * rsa_api_decrypt_buffer(char *pri_key, int buf_len, long long * buffer, in
     }
     if (i >= PRI_KEY_LEN*2)
     {
-        os_printf("input string invalid \n");
+        printf("input string invalid \n");
         return NULL;
     }    
     memcpy(exp_buf, &pri_key[i], PRI_KEY_LEN*2 - i);
@@ -141,12 +138,12 @@ char * rsa_api_decrypt_buffer(char *pri_key, int buf_len, long long * buffer, in
     //os_sscanf(mod_buf, "%lld", &pri.modulus);
     //os_sscanf(exp_buf, "%lld", &pri.exponent);
     
-    os_printf("get pri %lld %lld \n", pri.modulus, pri.exponent);
+    printf("get pri %lld %lld \n", pri.modulus, pri.exponent);
             
     char *decrypted = rsa_decrypt(buffer, len, &pri);
     if (NULL == decrypted)
     {
-        os_printf("decrypted failed \n");
+        printf("decrypted failed \n");
         return NULL;
     }
     
@@ -166,26 +163,26 @@ int rsa_api_unit_test(void)
     ret = 0;
     if (0 == ret)
     {
-        os_printf("get pub key %s \n", pub_key);
-        os_printf("get pri key %s \n", pri_key);
+        printf("get pub key %s \n", pub_key);
+        printf("get pri key %s \n", pri_key);
         
-        os_printf("start to enc \n");
+        printf("start to enc \n");
         long long * enc_data = rsa_api_encrypt_buffer(pub_key, sizeof(pub_key), "iloveu", strlen("iloveu"));
-        os_printf("start to dec \n");        
+        printf("start to dec \n");        
         char * dec_data      = rsa_api_decrypt_buffer(pri_key, sizeof(pri_key), enc_data, 8*strlen("iloveu"));
-        os_printf("dec done \n");
+        printf("dec done \n");
         if (NULL != dec_data)
         {
-            os_printf("get dec %s \n", dec_data);
+            printf("get dec %s \n", dec_data);
         }
         
         if (NULL != enc_data)
         {
-            os_free(enc_data);
+            free(enc_data);
         }
         if (NULL != dec_data)
         {
-            os_free(dec_data);
+            free(dec_data);
         }        
     }
     

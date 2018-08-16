@@ -601,7 +601,7 @@
         </option>
         <option>
           <name>IlinkIcfFile</name>
-          <state>$TOOLKIT_DIR$\config\lnkstm8s103k3.icf</state>
+          <state>$TOOLKIT_DIR$\config\lnkstm8s105k6.icf</state>
         </option>
         <option>
           <name>IlinkIcfFileSlave</name>
@@ -1573,9 +1573,36 @@
     </settings>
   </configuration>
   <group>
+    <name>crypto</name>
+    <file>
+      <name>$PROJ_DIR$\crypto\aes.c</name>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\crypto\aes_api.c</name>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\crypto\crypto_api.c</name>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\crypto\packet.c</name>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\crypto\rsa.c</name>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\crypto\rsa_api.c</name>
+    </file>
+  </group>
+  <group>
     <name>flash</name>
     <file>
       <name>$PROJ_DIR$\flash\flash_eeprom.c</name>
+    </file>
+  </group>
+  <group>
+    <name>json</name>
+    <file>
+      <name>$PROJ_DIR$\json\cJson.c</name>
     </file>
   </group>
   <group>

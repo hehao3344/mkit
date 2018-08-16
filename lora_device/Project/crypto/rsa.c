@@ -1,9 +1,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
-#include "os_type.h"
-#include "osapi.h"
-#include "mem.h"
+#include <stdio.h>
 
 #include "rsa_primes.h"
 
@@ -56,7 +54,7 @@ long long rsa_modExp(long long b, long long e, long long m)
 {
     if (b < 0 || e < 0 || m <= 0)
     {
-        os_printf("invalid param %lld %lld %lld \n", b, e, m);
+        printf("invalid param %lld %lld %lld \n", b, e, m);
         return 0;        
     }
 
@@ -96,7 +94,7 @@ void rsa_gen_keys(struct public_key_class *pub, struct private_key_class *priv)
     long long q = 0;
 
     //long long e = powl(2, 8) + 1;
-    long long e = pow(2, 8) + 1;
+    long long e = (int)pow(2, 8) + 1;
     long long d = 0;
     long long max = 0;
     long long phi_max = 0;
@@ -105,8 +103,8 @@ void rsa_gen_keys(struct public_key_class *pub, struct private_key_class *priv)
 
     do {
         // a and b are the positions of p and q in the list
-        int a =  (double)rand() * (prime_count+1) / (RAND_MAX+1.0);
-        int b =  (double)rand() * (prime_count+1) / (RAND_MAX+1.0);
+        int a =  (int)((double)rand() * (prime_count+1) / (RAND_MAX+1.0));
+        int b =  (int)((double)rand() * (prime_count+1) / (RAND_MAX+1.0));
         p = rsa_primes_table[a];
         q = rsa_primes_table[b];
         max = p*q;
@@ -122,7 +120,7 @@ void rsa_gen_keys(struct public_key_class *pub, struct private_key_class *priv)
         d = d+phi_max;
     }
 
-    os_printf("primes are %lld and %lld\n",(long long)p, (long long )q);
+    printf("primes are %lld and %lld\n",(long long)p, (long long )q);
     // We now store the public / private keys in the appropriate structs
     pub->modulus = max;
     pub->exponent = e;
@@ -134,10 +132,10 @@ void rsa_gen_keys(struct public_key_class *pub, struct private_key_class *priv)
 long long *rsa_encrypt(const char *message, const unsigned long message_size,
                        const struct public_key_class *pub)
 {
-    long long *encrypted = (long long *)os_malloc(sizeof(long long)*message_size);
+    long long *encrypted = (long long *)malloc(sizeof(long long)*message_size);
     if (encrypted == NULL)
     {
-        os_printf("malloc failed.\n");
+        printf("malloc failed.\n");
         return NULL;
     }
 
@@ -157,16 +155,16 @@ char *rsa_decrypt(const long long *message,
 {
     if (message_size % sizeof(long long) != 0)
     {
-        os_printf("rsa_decrypt error \n");
+        printf("rsa_decrypt error \n");
         return NULL;
     }
     // We allocate space to do the decryption (temp) and space for the output as a char array
     // (decrypted)
-    char *decrypted = (char *)os_malloc(message_size/sizeof(long long));
-    char *temp = (char *)os_malloc(message_size);
+    char *decrypted = (char *)malloc(message_size/sizeof(long long));
+    char *temp = (char *)malloc(message_size);
     if ((decrypted == NULL) || (temp == NULL))
     {
-        os_printf("malloc failed.\n");
+        printf("malloc failed.\n");
         return NULL;
     }
     // Now we go through each 8-byte chunk and decrypt it.
@@ -182,7 +180,7 @@ char *rsa_decrypt(const long long *message,
         decrypted[i] = temp[i];
     }
 
-    os_free(temp);
+    free(temp);
 
     return decrypted;
 }

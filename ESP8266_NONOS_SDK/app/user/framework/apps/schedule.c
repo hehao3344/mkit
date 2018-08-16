@@ -203,8 +203,8 @@ static void system_timer_center( void *arg )
             os_memset(handle->send_buf, 0, sizeof(handle->send_buf));
             os_sprintf(handle->send_buf, SYNC_TIME, handle->dev_param[i].dev_uuid, req_id, handle->sys_sec);
             
-            int out_len = sizeof(handle->tmp_buf));            
-            if (0 == packet_enc(handle->send_buf, sizeof(handle->send_buf), handle->tmp_buf, &out_len))
+            int out_len = sizeof(handle->tmp_buf);            
+            if (0 == packet_enc(handle->send_buf, strlen(handle->send_buf), handle->tmp_buf, &out_len))
             {           
                 crypto_api_encrypt_buffer(handle->tmp_buf, out_len);
                 /* 发送到子设备 */
@@ -418,10 +418,10 @@ static void ICACHE_FLASH_ATTR recv_data_fn(char *buffer, unsigned short len)
     {
         crypto_api_decrypt_buffer(buffer, len);
         
-        int out_len = sizeof(handle->tmp_buf));        
+        int out_len = sizeof(handle->tmp_buf);        
         if (0 == packet_dec(buffer, len, handle->tmp_buf, &out_len))
         {          
-            os_printf("get data from 1278 is %s \n", buffer);
+            os_printf("get data from 1278 is %s \n", handle->tmp_buf);
             struct jsontree_context js;
             jsontree_setup(&js, (struct jsontree_value *)&msg_tree, json_putchar);
             json_parse(&js, handle->tmp_buf);

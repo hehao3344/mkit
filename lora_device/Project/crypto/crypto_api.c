@@ -1,9 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
-
-#include "os_type.h"
-#include "osapi.h"
-#include "mem.h"
+#include <stdio.h>
 
 /* center control API */
 #include "aes_api.h"
@@ -17,7 +14,7 @@ char * crypto_api_gen_key(char * pub_key, char * key)
 {
     if (NULL == pub_key)
     {
-        os_printf("invalid param \n");
+        printf("invalid param \n");
         return NULL;
     }
         
@@ -34,7 +31,7 @@ int crypto_api_encrypt_buffer(char * buffer, int len)
 {   
     if (0 != len%BLOCK_LEN)
     {
-        os_printf("invalid param \n");
+        printf("invalid param \n");
         return -1;
     }
     
@@ -46,7 +43,7 @@ int crypto_api_decrypt_buffer(char * buffer, int len)
 {   
     if (0 != len%BLOCK_LEN)
     {
-        os_printf("invalid param \n");
+        printf("invalid param \n");
         return -1;
     }
     
@@ -66,9 +63,9 @@ int crypto_api_unit_test(void)
     int i;
     for (i=0; i<sizeof(buffer); i++)
     {
-        os_printf("0x%x ", buffer[i]);
+        printf("0x%x ", buffer[i]);
     }
-    os_printf("\n");
+    printf("\n");
     
     return 0;
 }

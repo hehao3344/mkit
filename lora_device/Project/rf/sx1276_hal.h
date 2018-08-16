@@ -5,6 +5,7 @@
 #include "../core/core.h"
 #include "../protocol/protocol.h"
 
+typedef void (* recv_data_callback)(char *buffer, unsigned short length);
 
 // SPI 接口
 // MISO         PC7
@@ -27,7 +28,7 @@
 #define  RF_CE_H         GPIO_WriteHigh( GPIOC, GPIO_PIN_4 )
 
 #define  SX1278_SDO      GPIO_ReadInputPin( GPIOC, GPIO_PIN_7 )  // SPI输入
-#
+
 #define  RF_CKL_L        GPIO_WriteLow( GPIOC, GPIO_PIN_5 )
 #define  RF_CKL_H        GPIO_WriteHigh( GPIOC, GPIO_PIN_5 )
 #define  RF_SDI_L        GPIO_WriteLow( GPIOC, GPIO_PIN_6 )
@@ -47,12 +48,11 @@
 #define SWITCH_ON       GPIO_WriteHigh( GPIOB, GPIO_PIN_6 )
 #define SWITCH_OFF      GPIO_WriteLow( GPIOB, GPIO_PIN_6 )
 
+void sx1276_hal_set_recv_cb(recv_data_callback cb);
 void sx1276_hal_reset( void );
 void sx1276_hal_register_rf_func( void );
 void sx1276_hal_lora_init( void );
-RfPlugResult * sx1276_hal_get_rf_result( void );
 void sx1276_hal_rf_send_packet( uint8 *rf_tran_buf, uint8 len );
 void sx1276_hal_rx_mode( void );
-void sx1276_hal_clear_rf_result( void );
 
 #endif

@@ -56,7 +56,8 @@ LogFile=_ ""
 [Breakpoints]
 Bp0=_ "STD_CODE" "{$PROJ_DIR$\main.c}.6.5" 0 0 0 0 "" 0 ""
 Bp1=_ "STD_CODE" "{$PROJ_DIR$\rf\sx1276.c}.202.9" 1 0 0 0 "" 0 ""
-Count=2
+Bp2=_ "STD_CODE" "{$PROJ_DIR$\sys_mgr\sys_mgr.c}.44.1" 1 0 0 0 "" 0 ""
+Count=3
 [Aliases]
 Count=0
 SuppressDialog=0
