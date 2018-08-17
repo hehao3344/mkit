@@ -176,15 +176,22 @@ static void recv_data_fn(char *buffer, unsigned short len)
 
 void sys_mgr_handle_key(void)
 {
-    switch_on_off = (0 == switch_on_off) ? 1 : 0; 
-    if (0 == switch_on_off) 
+    if ()
     {
-        SWITCH_OFF;     // 继电器关
+    
     }
     else
     {
-        SWITCH_ON;      // 继电器开
-    } 
+        switch_on_off = (0 == switch_on_off) ? 1 : 0; 
+        if (0 == switch_on_off) 
+        {    
+            SWITCH_OFF;     // 继电器关
+        }
+        else
+        {
+            SWITCH_ON;      // 继电器开
+        } 
+    }
 }
 
 #if WRITE_MAC
@@ -214,16 +221,15 @@ static void delay_ms(uint32 ms)
 }"
 
 #define MATCH_RESPONSE_MSG "{\
-{
-		“method”:”up_msg”,
-		“dev_uuid”:”02001122334455”,
-		“req_id”:123456789,
-		“code”:0
-“attribute”:
-{		
-“dev_uuid”:”02001122334455”,
-}
-}
+\"method\":\"up_msg\",\
+\"dev_uuid\":\"%s\",\
+\"req_id\":%d,\
+\"code\":0\
+\"attr\":\
+{\		
+\"dev_uuid\":\"%s\",\
+}\
+}"
 
 
 
@@ -262,8 +268,7 @@ static int handle_json_msg(char *msg, char *out_buf, int len)
     
     int ts = sub_obj->valueint; 
     /* 判断ts如果和系统的时间戳相差10s以上则认为该指令非法 */
-    
-    
+        
     cJSON * attr_obj = cJSON_GetObjectItem(sub_obj, "attr");
     if (NULL == attr_obj)
     {            
@@ -315,7 +320,8 @@ static int handle_json_msg(char *msg, char *out_buf, int len)
         /* 开始配对 */
         sys_mode = 1;                
         match_end = sys_sec + 60; /* 60秒配对时间 */ 
-        snprintf(out_buf, len, CONTROL_RESPONSE_MSG, dev_uuid, req_id, 0); 
+        
+        snprintf(out_buf, len, MATCH_RESPONSE_MSG, dev_uuid, req_id, 0, dev_uuid); 
         ret = 0;       
     }    
     return ret;
