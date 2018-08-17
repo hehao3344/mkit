@@ -29,15 +29,15 @@ extern "C"
 #endif
 
 /* cJSON Types: */
-#define cJSON_False 0
-#define cJSON_True 1
-#define cJSON_NULL 2
-#define cJSON_Number 3
-#define cJSON_String 4
-#define cJSON_Array 5
-#define cJSON_Object 6
+#define cJSON_False     0
+#define cJSON_True      1
+#define cJSON_NULL      2
+#define cJSON_Number    3
+#define cJSON_String    4
+#define cJSON_Array     5
+#define cJSON_Object    6
 
-#define cJSON_IsReference 256
+#define cJSON_IsReference   256
 #define cJSON_StringIsConst 512
 
 #define NUMBER_DOUBLE       1
@@ -70,22 +70,27 @@ typedef struct cJSON_Hooks {
 /* Supply malloc, realloc and free functions to cJSON */
 extern void cJSON_InitHooks(cJSON_Hooks* hooks);
 
-
 /* Supply a block of JSON, and this returns a cJSON object you can interrogate. Call cJSON_Delete when finished. */
 extern cJSON *cJSON_Parse(const char *value);
+
 /* Render a cJSON entity to text for transfer/storage. Free the char* when finished. */
 extern char  *cJSON_Print(cJSON *item);
+
 /* Render a cJSON entity to text for transfer/storage without any formatting. Free the char* when finished. */
 extern char  *cJSON_PrintUnformatted(cJSON *item);
+
 /* Render a cJSON entity to text using a buffered strategy. prebuffer is a guess at the final size. guessing well reduces reallocation. fmt=0 gives unformatted, =1 gives formatted */
 extern char *cJSON_PrintBuffered(cJSON *item,int prebuffer,int fmt);
+
 /* Delete a cJSON entity and all subentities. */
 extern void   cJSON_Delete(cJSON *c);
 
 /* Returns the number of items in an array (or object). */
 extern int    cJSON_GetArraySize(cJSON *array);
+
 /* Retrieve item number "item" from array "array". Returns NULL if unsuccessful. */
 extern cJSON *cJSON_GetArrayItem(cJSON *array,int item);
+
 /* Get item "string" from object. Case insensitive. */
 extern cJSON *cJSON_GetObjectItem(cJSON *object,const char *string);
 

@@ -142,31 +142,46 @@ static int pow2gt (long x)
     return x+1; 
 }
 
-typedef struct {char *buffer; int length; int offset; } printbuffer;
+typedef struct {
+    char *buffer; 
+    int length; 
+    int offset; 
+} printbuffer;
 
 static char* ensure(printbuffer *p, int needed)
 {
     char *newbuffer;int newsize;
-    if (!p || !p->buffer) return 0;
+    if (!p || !p->buffer) 
+        return 0;
     needed+=p->offset;
-    if (needed<=p->length) return p->buffer+p->offset;
+    if (needed<=p->length) 
+        return p->buffer+p->offset;
 
     newsize=pow2gt((long)needed);
     newbuffer=(char*)cJSON_malloc(newsize);
-    if (!newbuffer) {cJSON_free(p->buffer);p->length=0,p->buffer=0;return 0;}
-    if (newbuffer) memcpy(newbuffer,p->buffer,p->length);
+    if (!newbuffer) 
+    {
+        cJSON_free(p->buffer);
+        p->length=0,p->buffer=0;
+        return 0;
+    }
+    if (newbuffer) 
+        memcpy(newbuffer,p->buffer,p->length);
     cJSON_free(p->buffer);
     p->length=newsize;
     p->buffer=newbuffer;
+    
     return newbuffer+p->offset;
 }
 
 static int update(printbuffer *p)
 {
     char *str;
-    if (!p || !p->buffer) return 0;
+    if (!p || !p->buffer) 
+        return 0;
     str=p->buffer+p->offset;
-    return p->offset+JSON_STRLEN(str);
+    return 
+        p->offset+JSON_STRLEN(str);
 }
 
 /* Render the number nicely from the given item into a string. */
@@ -176,28 +191,40 @@ static char *print_number(cJSON *item, printbuffer *p)
     double d=item->valuedouble;
     int number_type = item->number_type;
 
-    if(NUMBER_ULL == number_type)
+    if (NUMBER_ULL == number_type)
     {
-        if (p)  str=ensure(p,22);
-        else    str=(char*)cJSON_malloc(22);    /* 2^64+1 can be represented in 21 chars. */
-        if (str)    sprintf(str,"%llu",item->valueull);
+        if (p)  
+            str=ensure(p, 22);
+        else    
+            str=(char*)cJSON_malloc(22);    /* 2^64+1 can be represented in 21 chars. */
+        if (str)    
+            sprintf(str,"%llu",item->valueull);
     }
     else if(NUMBER_LONGLONG == number_type)
     {
-        if (p)  str=ensure(p,22);
-        else    str=(char*)cJSON_malloc(22);    /* 2^64+1 can be represented in 21 chars. */
-        if (str)    sprintf(str,"%lld",item->valuelonglong);
+        if (p)  
+            str=ensure(p,22);
+        else    
+            str=(char*)cJSON_malloc(22);    /* 2^64+1 can be represented in 21 chars. */
+        if (str)    
+            sprintf(str,"%lld",item->valuelonglong);
     }
     else if (d==0)
     {
-        if (p)  str=ensure(p,2);
-        else    str=(char*)cJSON_malloc(2); /* special case for 0. */
-        if (str) strcpy(str,"0");
+        if (p)  
+            str=ensure(p,2);
+        else    
+            str=(char*)cJSON_malloc(2); /* special case for 0. */
+        if (str) 
+            strcpy(str,"0");
     }
     else
     {
-        if (p)  str=ensure(p,64);
-        else    str=(char*)cJSON_malloc(64);    /* This is a nice tradeoff. */
+        if (p)  
+            str=ensure(p,64);
+        else    
+            str=(char*)cJSON_malloc(64);    /* This is a nice tradeoff. */
+            
         if (str)
         {
             //if (fabs(floor(d)-d)<=DBL_EPSILON && fabs(d)<1.0e60)
@@ -210,6 +237,7 @@ static char *print_number(cJSON *item, printbuffer *p)
                 sprintf(str,"%f",d);
         }
     }
+    
     return str;
 }
 
@@ -228,15 +256,23 @@ static unsigned parse_hex4(const char *str)
 
 /* Parse the input text into an unescaped cstring, and populate item. */
 static const unsigned char firstByteMark[7] = { 0x00, 0x00, 0xC0, 0xE0, 0xF0, 0xF8, 0xFC };
+
 static const char *parse_string(cJSON *item,const char *str)
 {
     const char *ptr=str+1;char *ptr2;char *out;int len=0;unsigned long uc,uc2;
-    if (*str!='\"') {ep=str;return 0;}  /* not a string! */
+    if (*str!='\"') 
+    {
+        ep=str;
+        return 0;
+    }  /* not a string! */
 
-    while (*ptr!='\"' && *ptr && ++len) if (*ptr++ == '\\') ptr++;  /* Skip escaped quotes. */
+    while (*ptr!='\"' && *ptr && ++len) 
+        if (*ptr++ == '\\') 
+            ptr++;  /* Skip escaped quotes. */
 
     out=(char*)cJSON_malloc(len+1); /* This is how long we need for the string, roughly. */
-    if (!out) return 0;
+    if (!out) 
+        return 0;
 
     ptr=str+1;ptr2=out;
     while (*ptr!='\"' && *ptr)
@@ -296,10 +332,14 @@ static char *print_string_ptr(const char *str,printbuffer *p)
     if (!flag)
     {
         len=ptr-str;
-        if (p) out=ensure(p,len+3);
-        else        out=(char*)cJSON_malloc(len+3);
-        if (!out) return 0;
-        ptr2=out;*ptr2++='\"';
+        if (p) 
+            out=ensure(p,len+3);
+        else        
+            out=(char*)cJSON_malloc(len+3);
+        if (!out) 
+            return 0;
+        ptr2=out;
+        *ptr2++='\"';
         strcpy(ptr2,str);
         ptr2[len]='\"';
         ptr2[len+1]=0;
@@ -308,13 +348,25 @@ static char *print_string_ptr(const char *str,printbuffer *p)
 
     if (!str)
     {
-        if (p)  out=ensure(p,3);
-        else    out=(char*)cJSON_malloc(3);
-        if (!out) return 0;
+        if (p)  
+            out=ensure(p,3);
+        else    
+            out=(char*)cJSON_malloc(3);
+        if (!out) 
+            return 0;
         strcpy(out,"\"\"");
+        
         return out;
     }
-    ptr=str;while ((token=*ptr) && ++len) {if (strchr("\"\\\b\f\n\r\t",token)) len++; else if (token<32) len+=5;ptr++;}
+    ptr=str;
+    while ((token=*ptr) && ++len) 
+    {
+        if (strchr("\"\\\b\f\n\r\t",token)) 
+            len++; 
+        else if (token<32) 
+            len+=5;
+        ptr++;
+    }
 
     if (p)  out=ensure(p,len+3);
     else    out=(char*)cJSON_malloc(len+3);
@@ -374,6 +426,7 @@ cJSON *cJSON_ParseWithOpts(const char *value,const char **return_parse_end,int r
     if (return_parse_end) *return_parse_end=end;
     return c;
 }
+
 /* Default options for cJSON_Parse */
 cJSON *cJSON_Parse(const char *value) {return cJSON_ParseWithOpts(value,0,0);}
 
@@ -446,7 +499,11 @@ static char *print_value(cJSON *item,int depth,int fmt,printbuffer *p)
 static const char *parse_array(cJSON *item,const char *value)
 {
     cJSON *child;
-    if (*value!='[')    {ep=value;return 0;}    /* not an array! */
+    if (*value!='[')    
+    {
+        ep=value;
+        return 0;
+    }    /* not an array! */
 
     item->type=cJSON_Array;
     value=skip(value+1);

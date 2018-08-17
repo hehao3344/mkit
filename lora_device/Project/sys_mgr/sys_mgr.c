@@ -20,6 +20,9 @@ static uint8  status_led_flags  = 0;
 static uint8  send_timer_count  = 0;
 static uint8  send_buf[128];
 static uint8  tmp_buf[136];
+static int    sys_sec = 0;
+static int    match_end = 0;    /* 配对模式结束的秒数 */
+static uint8  sys_mode  = 0;    /* 0 正常工作模式 1 配对模式 */
 
 static int handle_json_msg(char *msg, char *out_buf, int len);    
 static void delay_ms(uint32 ms);
@@ -151,7 +154,7 @@ static void recv_data_fn(char *buffer, unsigned short len)
             
             handle_json_msg(tmp_buf, tmp_buf, sizeof(tmp_buf));
             /* 发送给SX1278 */
-
+            
         }
     }
 }
@@ -209,6 +212,19 @@ static void delay_ms(uint32 ms)
 \"req_id\":%d,\
 \"code\":%d\
 }"
+
+#define MATCH_RESPONSE_MSG "{\
+{
+		“method”:”up_msg”,
+		“dev_uuid”:”02001122334455”,
+		“req_id”:123456789,
+		“code”:0
+“attribute”:
+{		
+“dev_uuid”:”02001122334455”,
+}
+}
+
 
 
 static int handle_json_msg(char *msg, char *out_buf, int len)
@@ -282,6 +298,25 @@ static int handle_json_msg(char *msg, char *out_buf, int len)
         snprintf(out_buf, len, CONTROL_RESPONSE_MSG, dev_uuid, req_id, 0); 
         ret = 0;       
     }
-    
+    else if (0 == strcmp("set_time", cmd_obj->valuestring))
+    {
+        cJSON * ts_obj = cJSON_GetObjectItem(cmd_obj, "ts");
+        if (NULL == ts_obj)
+        {            
+            return -1;
+        } 
+        sys_sec = ts_obj->valueint; 
+                
+        snprintf(out_buf, len, CONTROL_RESPONSE_MSG, dev_uuid, req_id, 0); 
+        ret = 0;       
+    }
+    else if (0 == strcmp("set_match", cmd_obj->valuestring))
+    {
+        /* 开始配对 */
+        sys_mode = 1;                
+        match_end = sys_sec + 60; /* 60秒配对时间 */ 
+        snprintf(out_buf, len, CONTROL_RESPONSE_MSG, dev_uuid, req_id, 0); 
+        ret = 0;       
+    }    
     return ret;
 }
