@@ -17,7 +17,7 @@
         <debug>1</debug>
         <option>
           <name>GenDeviceSelectMenu</name>
-          <state>STM8S103K3	STM8S103K3</state>
+          <state>STM8S105K6	STM8S105K6</state>
         </option>
         <option>
           <name>GenCodeModel</name>
@@ -180,7 +180,7 @@
         </option>
         <option>
           <name>CCDefines</name>
-          <state>STM8S103</state>
+          <state>STM8S105</state>
         </option>
         <option>
           <name>CCPreprocFile</name>
@@ -537,7 +537,7 @@
         </option>
         <option>
           <name>IlinkOutputFile</name>
-          <state>templproj.out</state>
+          <state>rf_device.out</state>
         </option>
         <option>
           <name>IlinkDebugInfoEnable</name>
@@ -804,7 +804,7 @@
         <debug>0</debug>
         <option>
           <name>GenDeviceSelectMenu</name>
-          <state></state>
+          <state>UnspecifiedSTM8	STM8 - Unspecified</state>
         </option>
         <option>
           <name>GenCodeModel</name>
@@ -848,7 +848,7 @@
         </option>
         <option>
           <name>GenRTConfigPath</name>
-          <state></state>
+          <state>$TOOLKIT_DIR$\LIB\dlstm8smn.h</state>
         </option>
         <option>
           <name>GenLibInFormatter</name>
@@ -934,12 +934,12 @@
         </option>
         <option>
           <name>IccOptLevelSlave</name>
-          <state>1</state>
+          <state>3</state>
         </option>
         <option>
           <name>IccOptAllowList</name>
           <version>0</version>
-          <state>111110</state>
+          <state>111111</state>
         </option>
         <option>
           <name>IccGenerateDebugInfo</name>
@@ -947,7 +947,7 @@
         </option>
         <option>
           <name>IccOutputFile</name>
-          <state></state>
+          <state>$FILE_BNAME$.o</state>
         </option>
         <option>
           <name>IccCodeModel</name>
@@ -1320,7 +1320,7 @@
         </option>
         <option>
           <name>IlinkOutputFile</name>
-          <state>###Unitialized###</state>
+          <state>rf_device.out</state>
         </option>
         <option>
           <name>IlinkDebugInfoEnable</name>
