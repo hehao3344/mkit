@@ -160,7 +160,10 @@ INTERRUPT_HANDLER( EXTI_PORTC_IRQHandler, 5 )
   */
 INTERRUPT_HANDLER( EXTI_PORTD_IRQHandler, 6 )
 {
-
+    if ( SX1278_IRQ )  
+    { 
+        sx1278_recv_handle();
+    }
 }
 
 /**

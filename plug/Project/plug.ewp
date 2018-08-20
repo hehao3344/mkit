@@ -17,7 +17,7 @@
         <debug>1</debug>
         <option>
           <name>GenDeviceSelectMenu</name>
-          <state>STM8S105K6	STM8S105K6</state>
+          <state>STM8S103K3	STM8S103K3</state>
         </option>
         <option>
           <name>GenCodeModel</name>
@@ -180,7 +180,7 @@
         </option>
         <option>
           <name>CCDefines</name>
-          <state>STM8S105</state>
+          <state>STM8S103</state>
         </option>
         <option>
           <name>CCPreprocFile</name>
