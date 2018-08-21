@@ -3,7 +3,7 @@
 
 #include "../core/core.h"
 
-void system_config_clk_init( void );
-void system_config_gpio_config( void );
+void system_config_clk_init(void);
+void system_config_gpio_config(void);
 
 #endif

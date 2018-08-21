@@ -40,7 +40,7 @@ void system_config_clk_init(void)
 // 初始化GPIO
 void system_config_gpio_config(void)
 {
-      
+
     GPIO_DeInit(GPIOB);
     GPIO_DeInit(GPIOC);
     GPIO_DeInit(GPIOD);
@@ -50,6 +50,7 @@ void system_config_gpio_config(void)
     // GPIO_Init(GPIOC, GPIO_PIN_2, GPIO_MODE_IN_PU_NO_IT);          
     GPIO_Init(GPIOC, GPIO_PIN_2, GPIO_MODE_IN_PU_IT);         // GIO0
     EXTI_SetExtIntSensitivity(EXTI_PORT_GPIOC, EXTI_SENSITIVITY_RISE_ONLY); 
+
     // EXTI_SetTLISensitivity(EXTI_TLISENSITIVITY_FALL_ONLY);
 
     GPIO_Init(GPIOC, GPIO_PIN_3, GPIO_MODE_OUT_PP_HIGH_FAST); // CE SX1278 - RST
@@ -62,6 +63,7 @@ void system_config_gpio_config(void)
     // 插座状态 和 插座继电器控制
     GPIO_Init(GPIOD, GPIO_PIN_0, GPIO_MODE_OUT_PP_HIGH_FAST); // 是否收到信号 状态
     GPIO_Init(GPIOB, GPIO_PIN_6, GPIO_MODE_OUT_PP_LOW_FAST); // 继电器  必须设置为低电平 否则会一上电 继电器就是开的状态
+
 
     // GPIO_Init(GPIOB, GPIO_PIN_7, GPIO_MODE_IN_PU_NO_IT);      // 按键 每按一次 翻转一次
     GPIO_Init(GPIOB, GPIO_PIN_7, GPIO_MODE_IN_PU_IT);
@@ -109,7 +111,6 @@ void system_config_gpio_config(void)
     GPIO_Init(GPIOD, GPIO_PIN_7, GPIO_MODE_OUT_PP_HIGH_FAST); // 是否收到信号
     GPIO_Init(GPIOD, GPIO_PIN_5, GPIO_MODE_IN_PU_NO_IT);      // 按键 每按一次 翻转一次
 #endif
-
 }
 
 /*******************************************************************************

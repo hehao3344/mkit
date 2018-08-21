@@ -5,13 +5,13 @@
     
 static recv_data_callback recv_cb = NULL;
 
-static void  fn_send_byte( uint8 out );
-static uint8 fn_spi_read_byte( void );
-static void  fn_cmd_switch_en( CmdEntype_t cmd );
-static void  fn_cmd_switch_pa( CmdPaType_t cmd );
+static void  fn_send_byte(uint8 out);
+static uint8 fn_spi_read_byte(void);
+static void  fn_cmd_switch_en(CmdEntype_t cmd);
+static void  fn_cmd_switch_pa(CmdPaType_t cmd);
 
 // 接收到RF的数据
-void fn_fqc_recv_data( uint8 *lpbuf, uint16 len );
+void fn_fqc_recv_data(uint8 *lpbuf, uint16 len);
 
 static lpCtrlTypefunc_t  ctrlTypefunc = 
 {
@@ -23,12 +23,12 @@ static lpCtrlTypefunc_t  ctrlTypefunc =
 };
 
 // 芯片复位
-void sx1276_hal_reset( void )
+void sx1276_hal_reset(void)
 {
     RF_REST_L;
-    sx1276_delay_1s( 2000 );
+    sx1276_delay_1s(2000);
     RF_REST_H;
-    sx1276_delay_1s( 500 );
+    sx1276_delay_1s(500);
 }
 
 void sx1276_hal_set_recv_cb(recv_data_callback cb)
@@ -36,22 +36,22 @@ void sx1276_hal_set_recv_cb(recv_data_callback cb)
     recv_cb = cb;
 }
 
-void sx1276_hal_register_rf_func( void )
+void sx1276_hal_register_rf_func(void)
 {
-    rx1276_register_rf_func( &ctrlTypefunc );
+    rx1276_register_rf_func(&ctrlTypefunc);
 }
 
-void sx1276_hal_rf_send_packet( uint8 *rf_tran_buf, uint8 len )
+void sx1276_hal_rf_send_packet(uint8 *rf_tran_buf, uint8 len)
 {
-    rx1276_rf_send_packet( rf_tran_buf, len );
+    rx1276_rf_send_packet(rf_tran_buf, len);
 }
 
-void sx1276_hal_rx_mode( void )
+void sx1276_hal_rx_mode(void)
 {
     sx1276_rx_mode();
 }
 
-void sx1276_hal_lora_init( void )
+void sx1276_hal_lora_init(void)
 {
     sx1276_lora_init();
 }
@@ -59,12 +59,12 @@ void sx1276_hal_lora_init( void )
 ////////////////////////////////////////////////////////////////////////////////
 // static function
 ////////////////////////////////////////////////////////////////////////////////
-static void fn_send_byte( uint8 out )
+static void fn_send_byte(uint8 out)
 {
     uint8 i;
-    for ( i = 0; i < 8; i++ )
+    for (i = 0; i < 8; i++)
     {
-        if ( out & 0x80 )           // check if MSB is high
+        if (out & 0x80)           // check if MSB is high
         {
             RF_SDI_H;
         }
@@ -74,21 +74,21 @@ static void fn_send_byte( uint8 out )
         }
 
         RF_CKL_H;                   // toggle clock high
-        out = ( out << 1 );         // shift 1 place for next bit
+        out = (out << 1);           // shift 1 place for next bit
         RF_CKL_L;                   // toggle clock low
     }
 }
 
-static uint8 fn_spi_read_byte( void )
+static uint8 fn_spi_read_byte(void)
 {
     uint8 i, j;
 
     j = 0;
-    for ( i = 0; i < 8; i++ )
+    for (i = 0; i < 8; i++)
     {
         RF_CKL_H;
         j = (j << 1);           // shift 1 place to the left or shift in 0
-        if ( SX1278_SDO )       // check to see if bit is high
+        if (SX1278_SDO)       // check to see if bit is high
         {
             j = j | 0x01;       // if high, make bit high
         }
@@ -99,9 +99,9 @@ static uint8 fn_spi_read_byte( void )
     return j;                   // toggle clock low //
 }
 
-static void fn_cmd_switch_en( CmdEntype_t cmd )
+static void fn_cmd_switch_en(CmdEntype_t cmd)
 {
-    switch( cmd )
+    switch(cmd)
     {
         case EN_OPEN:
         {
@@ -119,10 +119,10 @@ static void fn_cmd_switch_en( CmdEntype_t cmd )
 }
 
 // 没用上 暂时不处理
-static void fn_cmd_switch_pa( CmdPaType_t cmd )
+static void fn_cmd_switch_pa(CmdPaType_t cmd)
 {
 #if 0
-    switch( cmd )
+    switch(cmd)
     {
         case RX_OPEN:
         {
