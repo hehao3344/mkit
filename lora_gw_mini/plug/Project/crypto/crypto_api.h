@@ -6,10 +6,8 @@ extern "C"
 {
 #endif
 
-
 #define KEY_PASSWORD    "abcdmkitABCDMKIT"
 
-char * crypto_api_gen_key(char * pub_key, char * key);
 
 void crypto_api_cbc_set_key(char * key, int len);
 

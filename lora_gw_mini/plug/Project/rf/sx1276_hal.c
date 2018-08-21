@@ -143,9 +143,7 @@ static void fn_cmd_switch_pa(CmdPaType_t cmd)
 
 // 接收到RF的数据
 static void fn_fqc_recv_data(uint8 *buffer, uint16 len)
-{
-    
-    printf("get buf %s len %d \n", buffer, len);
+{    
     if (NULL != recv_cb)
     {
         recv_cb((char *)buffer, len);

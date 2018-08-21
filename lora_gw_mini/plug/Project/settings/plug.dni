@@ -1,16 +1,3 @@
-[InterruptLog]
-LogEnabled=0
-SumEnabled=0
-GraphEnabled=0
-ShowTimeLog=1
-ShowTimeSum=1
-SumSortOrder=0
-[DataLog]
-LogEnabled=0
-SumEnabled=0
-GraphEnabled=0
-ShowTimeLog=1
-ShowTimeSum=1
 [Stack]
 FillEnabled=0
 OverflowWarningsEnabled=1
@@ -21,22 +8,8 @@ UseTrigger=1
 TriggerName=main
 LimitSize=0
 ByteLimit=50
-[Breakpoints2]
-Count=0
-[Interrupts]
-Enabled=1
-[MemoryMap]
-Enabled=0
-Base=0
-UseAuto=0
-TypeViolation=1
-UnspecRange=1
-ActionState=1
-[Trace1]
-Enabled=0
-ShowSource=1
 [DebugChecksum]
-Checksum=-908862027
+Checksum=-959006667
 [CallStack]
 ShowArgs=0
 [Disassembly]
@@ -53,6 +26,41 @@ Category=_ 0
 [TermIOLog]
 LoggingEnabled=_ 0
 LogFile=_ ""
+[CallStackLog]
+Enabled=0
+[DriverProfiling]
+Enabled=0
+Mode=1
+Graph=0
+Symbiont=0
+Exclusions=
+[InterruptLog]
+LogEnabled=0
+SumEnabled=0
+GraphEnabled=0
+ShowTimeLog=1
+ShowTimeSum=1
+SumSortOrder=0
+[DataLog]
+LogEnabled=0
+SumEnabled=0
+GraphEnabled=0
+ShowTimeLog=1
+ShowTimeSum=1
+[Breakpoints2]
+Count=0
+[Interrupts]
+Enabled=1
+[MemoryMap]
+Enabled=0
+Base=0
+UseAuto=0
+TypeViolation=1
+UnspecRange=1
+ActionState=1
+[Trace1]
+Enabled=0
+ShowSource=1
 [Breakpoints]
 Bp0=_ "STD_CODE" "{$PROJ_DIR$\main.c}.3.1" 0 0 0 0 "" 0 ""
 Bp1=_ "STD_CODE" "{$PROJ_DIR$\main.c}.7.5" 1 0 0 0 "" 0 ""
@@ -63,7 +71,7 @@ Bp5=_ "STD_CODE" "{$PROJ_DIR$\stm8s_it.c}.116.1" 1 0 0 0 "" 0 ""
 Bp6=_ "STD_CODE" "{$PROJ_DIR$\stm8s_it.c}.135.9" 1 0 0 0 "" 0 ""
 Bp7=_ "STD_CODE" "{$PROJ_DIR$\stm8s_it.c}.128.5" 1 0 0 0 "" 0 ""
 Bp8=_ "STD_CODE" "{$PROJ_DIR$\rf\system_config.c}.82.13" 1 0 0 0 "" 0 ""
-Bp9=_ "STD_CODE" "{$PROJ_DIR$\rf\system_config.c}.86.13" 1 0 0 0 "" 0 ""
+Bp9=_ "STD_CODE" "{$PROJ_DIR$\rf\system_config.c}.86.5" 1 0 0 0 "" 0 ""
 Count=10
 [Aliases]
 Count=0

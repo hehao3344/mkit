@@ -45,7 +45,11 @@
  /* #define STM8S005 */      /*!< STM8S Value Line Medium density devices */
  /* #define STM8AF626x */    /*!< STM8A Medium density devices */
  /* #define STM8AF622x */    /*!< STM8A Low density devices */
- /* #define STM8S103 */      /*!< STM8S Low density devices */
+
+#ifndef STM8S103
+#define STM8S103      /*!< STM8S Low density devices */
+#endif
+
  /* #define STM8S003 */      /*!< STM8S Value Line Low density devices */
  /* #define STM8S903 */      /*!< STM8S Low density devices */
 

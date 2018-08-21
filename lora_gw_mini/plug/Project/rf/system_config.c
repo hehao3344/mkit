@@ -64,7 +64,6 @@ void system_config_gpio_config(void)
     GPIO_Init(GPIOD, GPIO_PIN_0, GPIO_MODE_OUT_PP_HIGH_FAST); // 是否收到信号 状态
     GPIO_Init(GPIOB, GPIO_PIN_6, GPIO_MODE_OUT_PP_LOW_FAST); // 继电器  必须设置为低电平 否则会一上电 继电器就是开的状态
 
-
     // GPIO_Init(GPIOB, GPIO_PIN_7, GPIO_MODE_IN_PU_NO_IT);      // 按键 每按一次 翻转一次
     GPIO_Init(GPIOB, GPIO_PIN_7, GPIO_MODE_IN_PU_IT);
     EXTI_SetExtIntSensitivity(EXTI_PORT_GPIOB, EXTI_SENSITIVITY_RISE_FALL); // EXTI_SENSITIVITY_RISE_ONLY); 
@@ -74,20 +73,9 @@ void system_config_gpio_config(void)
     //GPIO_WriteLow(GPIOB, GPIO_PIN_6);
     
     GPIO_WriteHigh(GPIOD, GPIO_PIN_0);
-    GPIO_WriteLow(GPIOD, GPIO_PIN_0);
+    GPIO_WriteLow(GPIOD, GPIO_PIN_0);    
     
-    GPIO_Init(GPIOB, GPIO_PIN_7, GPIO_MODE_IN_PU_NO_IT);      // SDO
-    while(1)
-    {
-        if (GPIO_ReadInputPin( GPIOB, GPIO_PIN_7 ))
-        {
-            printf("a");
-        }           
-        else        
-        {
-            printf("b");
-        }
-    }
+    //GPIO_Init(GPIOB, GPIO_PIN_7, GPIO_MODE_IN_PU_NO_IT);      // SDO
     
 #if 0    
     GPIO_DeInit(GPIOA);

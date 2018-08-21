@@ -3,41 +3,43 @@
 
 #include "../core/core.h"
 
-// 设备到遥控器的协议 每500ms发送一次
-// 协议一共 12 字节
-/// header(1B) = 0xA5  len(1B) direction(1B) mac(4B) address(1B) payload(xB) checksum(1B)
-// direction: device -> remote control 0x01
-//            remote control -> device 0x02
-//            mac addr 一共4个字节
-//            address  一个字节
-//            payload 负载内容格式如下
-//                    |       1B      |      2B     |
-//                         开关状态       状态反馈
+// 1字节    1字节    1字节     1字节  6字节    4字节       N字节      1字节
+// 0xA5     len    direction    cmd    mac   timestamp     payload    checksum
 
+//说明: len表示从direction到checksum的长度；
+//Direction表示数据流向：01表示下行，02表示上行
+//Timestamp表示时间戳，对于同一时间戳的命令子设备只响应一次
+// Checksum表示从len到payload所有字节的累积和
 
-// 约定   包头(header)固定为0xFF 包长度(len)是指从direction开始一直到校验和的字节长度(包括direction和校验和)。
-// 		  校验和是指从 len 开始一直到 payload 所有数据的累加和与0xFF
+//Cmd：命令定义
+//0x01：打开/关闭插座
+//下行时Payload：1字节：0x01打开，0x00：关闭
+//上行时Payload：1字节：0x10成功，0x11失败
 
-// 遥控器到设备的协议
-// 协议一共 12 字节
-// header(1B) = 0xA5  len(1B) direction(1B)   mac(4B) address(1B) payload(xB) checksum(1B)
-// direction: device -> remote control 0x01
-//            remote control -> device 0x02
-//            mac addr 一共4个字节
-//            address  一个字节
-//            payload 负载内容格式如下
-//                    |       1B        |         1B         |        1B       |
-//                       开关命令有效        开关命令0关1开       预留为0
-// 从ASR遥控器发送过来的数据结构
-typedef struct RfPlugResult
-{
-    uint8  switch_invalid;       // 开启关闭 是否有效
-    uint8  switch_on_off;
-    uint8  mac[4];
-    uint8  address;
-} RfPlugResult;
+//0x02：开始配对
+//下行时，mac address为全FF，Payload：1字节：0x01表示请求配对，0x03表示配对成功；
+//上行时，mac address为子设备的mac address，Payload：1字节：0x02表示子设备收到消息并且正在配对；
 
-uint8 * protocol_device_get_send_buf( uint8 *mac, uint8 address, uint8 on_off, uint8 is_response );
-RfPlugResult * protocol_device_resolve_data( uint8 * buffer, uint16 len );
+//0x03：获取子设备属性
+//下行时Payload：1字节，填0x00
+//上行时Payload：1字节，开关状态为开时0x01，关时为0x00
+
+//0x10：子设备主动上报的消息
+//该消息不需要回复，状态有变化或者每隔1分钟需要上报该消息
+//Payload：1字节，开关状态为开时0x01，关时为0x00
+
+typedef void (*cmb_handle_cb)(char * mac, char cmd);
+
+// 处理命令
+int protocol_handle_cmd(char * buf, char len);
+
+//0x01：打开/关闭插座
+char * protocol_switch_resp(char * mac, char is_success);
+
+//0x02：开始配对
+char * protocol_match_resp(char * mac);
+
+//0x03：获取子设备属性
+char * protocol_get_property_resp(char * mac, char on_off);
 
 #endif

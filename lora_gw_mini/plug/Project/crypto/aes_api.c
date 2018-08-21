@@ -25,7 +25,6 @@ int aes_api_cbc_encrypt_buffer(char * buffer, int len)
 {
     if ((0 != len%AES_DATA_BLOCK_LEN) || (len <= 0))
     {
-        printf("invalid param %d \n", len);
         return -1;
     }
     struct AES_ctx ctx;
@@ -39,7 +38,6 @@ int aes_api_cbc_decrypt_buffer(char * buffer, int len)
 {
     if ((0 != len%AES_DATA_BLOCK_LEN) || (len <= 0))
     {
-        printf("invalid param %d \n", len);
         return -1;
     }
     struct AES_ctx ctx;
@@ -56,19 +54,7 @@ int aes_api_unit_test(void)
     int ret = aes_api_cbc_encrypt_buffer(buffer, sizeof(buffer));
     if (0 == ret)
     {
-        printf("input: \n");
-        for (i=0; i<sizeof(buffer); i++)
-        {
-            printf("0x%x \n", buffer[i]);
-        }
-        printf("\n");
-        aes_api_cbc_decrypt_buffer(buffer, sizeof(buffer));
-        printf("output: \n");
-        for (i=0; i<sizeof(buffer); i++)
-        {
-            printf("0x%x \n", buffer[i]);
-        }
-        printf("\n");
+        aes_api_cbc_decrypt_buffer(buffer, sizeof(buffer));        
     }
 
     return 0;

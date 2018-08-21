@@ -50,7 +50,6 @@ int packet_dec(char * buf_in, int len_in, char * buf_out, int * out_len)
     if (len_in > sizeof(PACKET_HEAD))
     {
         memcpy(&head, buf_in, sizeof(PACKET_HEAD));
-        printf("got valid len %d \n", head.valid_len);
         if ((head.valid_len <= * out_len) &&
             (head.valid_len > 0))
         {
@@ -69,13 +68,10 @@ int packet_test(void)
     char buffer[128];
     int  out_len = sizeof(buffer);
     packet_enc(in, strlen(in), buffer, &out_len);
-    
-    printf("get total %d \n", out_len);
-    
+     
     char buffer_out[64] = {0};
     out_len = sizeof(buffer_out);
     packet_dec(buffer, out_len, buffer_out, &out_len);
-    printf("get out string %s len %d \n", buffer_out, out_len);
-        
+           
     return 0;    
 }

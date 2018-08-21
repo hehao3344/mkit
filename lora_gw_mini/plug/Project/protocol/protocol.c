@@ -1,78 +1,157 @@
 #include "protocol.h"
 
-#define PROTOCOL_BUF_LEN    12
+#define MAX_BUF_LEN  16
 
-static uint8 send_buffer[PROTOCOL_BUF_LEN];
-static RfPlugResult rf_plug_result;
+static char send_buffer[MAX_BUF_LEN];
 
-// 产生由设备端发送到ASR遥控器端的数据
-uint8 * protocol_device_get_send_buf( uint8 *mac, uint8 address, uint8 on_off, uint8 is_response )
+// 1字节    1字节    1字节     1字节  6字节    4字节       N字节      1字节
+// 0xA5     len    direction    cmd    mac   timestamp     payload    checksum
+// 当前协议的payload都为16字节
+
+
+cmb_handle_cb cmd_cb = NULL;
+
+void protocol_set_cb(cmb_handle_cb cb)
 {
-    uint8 i;
-    uint8 check_sum = 0;
-    for ( i=0; i<PROTOCOL_BUF_LEN; i++ )
+    cmd_cb = cb;
+}
+
+// 处理命令
+int protocol_handle_cmd(char * buf, char len)
+{
+    char i;
+    char check_sum = 0;
+    // 匹配协议长度和协议头
+    if ((MAX_BUF_LEN != len) || (0xA5 != buf[0]))
+    {
+        return -1;
+    }
+
+    for (i=1; i<(MAX_BUF_LEN - 1); i++ )
+    {
+        check_sum += buffer[i];
+    }
+
+    if (buffer[MAX_BUF_LEN-1] != check_sum)
+    {
+        return NULL;
+    }
+
+    if (buffer[2] != 0x01)  // 如果不是 中控发送过来的数据则不理会
+    {
+        return NULL;
+    }
+    
+    /* 比较mac地址 */
+    if (NULL != cmd_cb)
+    {
+        cmd_cb(buf[4], buf[3], buffer[14]);        
+    }
+    
+    return 0;
+}
+
+//0x01：打开/关闭插座
+char * protocol_switch_resp(char * mac, char is_success)
+{
+    char i;
+    char check_sum = 0;
+    for (i=0; i<MAX_BUF_LEN; i++)
     {
         send_buffer[i] = 0x00;
     }
 
     send_buffer[0] = 0xA5;
-    send_buffer[1] = ( PROTOCOL_BUF_LEN - 2 ); // 减去2是不包括0xA5 和 len
-    send_buffer[2] = 1;
-
-    send_buffer[3] = mac[0];
-    send_buffer[4] = mac[1];
-    send_buffer[5] = mac[2];
-    send_buffer[6] = mac[3];
-
-    send_buffer[7] = address;
-    send_buffer[8] = on_off;
-    send_buffer[9] = is_response; // 是否是状态反馈
-
-    for ( i=1; i < ( PROTOCOL_BUF_LEN - 1 ); i++ )
+    send_buffer[1] = (MAX_BUF_LEN - 2); /* 减去2是不包括0xA5 和 len */
+    send_buffer[2] = 2;                 /* 上行 */
+    send_buffer[3] = 0x01; 
+    
+    /* mac地址为6字节 */
+    for (i=0; i<6; i++)
+    {
+        send_buffer[4+i] = mac[i];
+    }
+    /* ts 10开始到13 回复的都填0 */
+    
+    /* 14 字节 */    
+    send_buffer[14] = (1 == is_success) ? 0x10 : 0x11;
+        
+    /* 计算checksum */    
+    for (i=1; i<(MAX_BUF_LEN-1); i++)
     {
         check_sum += send_buffer[i];
     }
-
-    send_buffer[PROTOCOL_BUF_LEN-1] = ( check_sum & 0xFF );
+    send_buffer[15] = (check_sum&0xFF);
 
     return send_buffer;
 }
 
-// 解析从ASR遥控器收到的数据
-RfPlugResult * protocol_device_resolve_data( uint8 * buffer, uint16 len )
+//0x02：开始配对
+char * protocol_match_resp(char * mac)
 {
-    uint8 i;
-    uint8 check_sum = 0;
-    // 匹配协议长度和协议头
-    if ( ( PROTOCOL_BUF_LEN != len ) ||
-         ( 0xA5 != buffer[0] )  )
+    char i;
+    char check_sum = 0;
+    for (i=0; i<MAX_BUF_LEN; i++)
     {
-        return NULL;
+        send_buffer[i] = 0x00;
     }
 
-    for ( i=1; i < ( PROTOCOL_BUF_LEN - 1 ); i++ )
+    send_buffer[0] = 0xA5;
+    send_buffer[1] = (MAX_BUF_LEN - 2); /* 减去2是不包括0xA5 和 len */
+    send_buffer[2] = 2;                 /* 上行 */
+    send_buffer[3] = 0x02; 
+    
+    /* mac地址为6字节 */
+    for (i=0; i<6; i++)
     {
-        check_sum += buffer[i];
+        send_buffer[4+i] = mac[i];
+    }
+    /* ts 10开始到13 回复的都填0 */
+    
+    /* 14 字节 */    
+    send_buffer[14] = 0x02;
+        
+    /* 计算checksum */    
+    for (i=1; i<(MAX_BUF_LEN-1); i++)
+    {
+        check_sum += send_buffer[i];
+    }
+    send_buffer[15] = (check_sum&0xFF);
+
+    return send_buffer;
+}
+
+//0x03：获取子设备属性
+char * protocol_get_property_resp(char * mac, char on_off)
+{
+    char i;
+    char check_sum = 0;
+    for (i=0; i<MAX_BUF_LEN; i++)
+    {
+        send_buffer[i] = 0x00;
     }
 
-    if ( buffer[PROTOCOL_BUF_LEN-1] != check_sum )
+    send_buffer[0] = 0xA5;
+    send_buffer[1] = (MAX_BUF_LEN - 2); /* 减去2是不包括0xA5 和 len */
+    send_buffer[2] = 2;                 /* 上行 */
+    send_buffer[3] = 0x03;              /* cmd */
+    
+    /* mac地址为6字节 */
+    for (i=0; i<6; i++)
     {
-        return NULL;
+        send_buffer[4+i] = mac[i];
     }
-
-    if ( buffer[2] != 2 )  // 如果不是 遥控端发送过来的数据则不理会
+    /* ts 10开始到13 回复的都填0 */
+    
+    /* 14 字节 */    
+    send_buffer[14] = on_off;   /* 0 关 1 开 */
+        
+    /* 计算checksum */    
+    for (i=1; i<(MAX_BUF_LEN-1); i++)
     {
-        return NULL;
+        check_sum += send_buffer[i];
     }
+    send_buffer[15] = (check_sum&0xFF);
 
-    rf_plug_result.mac[0]         = buffer[3];
-    rf_plug_result.mac[1]         = buffer[4];
-    rf_plug_result.mac[2]         = buffer[5];
-    rf_plug_result.mac[3]         = buffer[6];
-    rf_plug_result.address        = buffer[7];
-
-    rf_plug_result.switch_invalid = buffer[8];
-    rf_plug_result.switch_on_off  = buffer[9];
-
-    return &rf_plug_result;
+    return send_buffer;
 }
