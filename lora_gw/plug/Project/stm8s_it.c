@@ -28,7 +28,6 @@
 #include "../rf/sx1276_hal.h"
 #include "../sys_mgr/sys_mgr.h"
 
-
 /** @addtogroup Template_Project
   * @{
   */
@@ -125,15 +124,15 @@ static uint32 press_start_ms = 0;
 INTERRUPT_HANDLER(EXTI_PORTB_IRQHandler, 4)
 {
     // 按下去之后
-    if ( !GPIO_ReadInputPin( GPIOB, GPIO_PIN_7 ) )
+    if (!GPIO_ReadInputPin( GPIOB, GPIO_PIN_3))
     {
-        press_start_ms = time1_get_value( 2 );
+        press_start_ms = time1_get_value(2);
     }
 
-    if ( GPIO_ReadInputPin( GPIOB, GPIO_PIN_7 ) )
+    if ( GPIO_ReadInputPin(GPIOB, GPIO_PIN_3))
     {
-        if ( ( ( time1_get_value( 2 ) - press_start_ms ) > 60 ) &&
-             ( ( time1_get_value( 2 ) - press_start_ms ) < 2000 ) )
+        if (((time1_get_value(2) - press_start_ms) >60) &&
+            ((time1_get_value(2) - press_start_ms) < 2000))
         {
             sys_mgr_handle_key();
         }
@@ -145,9 +144,9 @@ INTERRUPT_HANDLER(EXTI_PORTB_IRQHandler, 4)
   * @param  None
   * @retval None
   */
-INTERRUPT_HANDLER( EXTI_PORTC_IRQHandler, 5 )
+INTERRUPT_HANDLER(EXTI_PORTC_IRQHandler, 5)
 {
-    if ( SX1278_IRQ )  
+    if (SX1278_IRQ)  
     { 
         sx1278_recv_handle();
     }
@@ -160,7 +159,7 @@ INTERRUPT_HANDLER( EXTI_PORTC_IRQHandler, 5 )
   */
 INTERRUPT_HANDLER( EXTI_PORTD_IRQHandler, 6 )
 {
-    if ( SX1278_IRQ )  
+    if (SX1278_IRQ)
     { 
         sx1278_recv_handle();
     }
@@ -171,7 +170,7 @@ INTERRUPT_HANDLER( EXTI_PORTD_IRQHandler, 6 )
   * @param  None
   * @retval None
   */
-INTERRUPT_HANDLER( EXTI_PORTE_IRQHandler, 7 )
+INTERRUPT_HANDLER(EXTI_PORTE_IRQHandler, 7)
 {
   /* In order to detect unexpected events during development,
      it is recommended to set a breakpoint on the following instruction.

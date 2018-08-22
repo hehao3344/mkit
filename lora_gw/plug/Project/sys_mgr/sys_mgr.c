@@ -23,8 +23,8 @@ static uint8  status_led_flags  = 0;
 static uint8  send_timer_count  = 0;
 static uint8  send_buf[128];
 static uint8  tmp_buf[136];
-static int    sys_sec = 0;
-static int    match_end = 0;    /* 配对模式结束的秒数 */
+static long   sys_sec = 0;
+static long   match_end = 0;    /* 配对模式结束的秒数 */
 static uint8  sys_mode  = 0;    /* 0 正常工作模式 1 配对模式 */
 
 static int handle_json_msg(char *msg, char *out_buf, int len);
@@ -76,12 +76,11 @@ void sys_mgr_init(void)
 }\
 }"
 
-
 void sys_mgr_send_msg(void)
 {
     uint8 i;
     uint32 timer3_ms  = 0;                      // 发送周期计时器
-    timer3_ms         = time1_get_value(0);   // 定时器0
+    timer3_ms         = time1_get_value(0);     // 定时器0
 
     // 收到从ASR发送过来的消息之后 必须立即给回应
     if ((timer3_ms >= 10000) || (led_count_response > 0))
@@ -175,21 +174,14 @@ static void recv_data_fn(char *buffer, unsigned short len)
 
 void sys_mgr_handle_key(void)
 {
-    if (0)
+    switch_on_off = (0 == switch_on_off) ? 1 : 0;
+    if (0 == switch_on_off)
     {
-
+        SWITCH_OFF;     // 继电器关
     }
     else
     {
-        switch_on_off = (0 == switch_on_off) ? 1 : 0;
-        if (0 == switch_on_off)
-        {
-            SWITCH_OFF;     // 继电器关
-        }
-        else
-        {
-            SWITCH_ON;      // 继电器开
-        }
+        SWITCH_ON;      // 继电器开
     }
 }
 
@@ -263,7 +255,7 @@ static int handle_json_msg(char *msg, char *out_buf, int len)
         return -1;
     }
 
-    // int ts = sub_obj->valueint;
+    long cur_ts = sub_obj->valueint;
     /* 判断ts如果和系统的时间戳相差10s以上则认为该指令非法 */
 
     cJSON * attr_obj = cJSON_GetObjectItem(sub_obj, "attr");
@@ -280,25 +272,28 @@ static int handle_json_msg(char *msg, char *out_buf, int len)
 
     if (0 == strcmp("set_switch", cmd_obj->valuestring))
     {
-        cJSON * switch_obj = cJSON_GetObjectItem(cmd_obj, "switch");
-        if (NULL == switch_obj)
+        if ((cur_ts - sys_sec) <= 10)
         {
-            return -1;
+            cJSON * switch_obj = cJSON_GetObjectItem(cmd_obj, "switch");
+            if (NULL == switch_obj)
+            {
+                return -1;
+            }
+            if (0 == strcmp("on", switch_obj->valuestring))
+            {
+                // 打开开关
+                SWITCH_ON;     // 继电器开
+                switch_on_off = 1;
+            }
+            else if (0 == strcmp("off", switch_obj->valuestring))
+            {
+                SWITCH_OFF;    // 继电器关
+                switch_on_off = 0;
+            }
+    
+            snprintf(out_buf, len, CONTROL_RESPONSE_MSG, dev_uuid, req_id, 0);
+            ret = 0;
         }
-        if (0 == strcmp("on", switch_obj->valuestring))
-        {
-            // 打开开关
-            SWITCH_ON;     // 继电器开
-            switch_on_off = 1;
-        }
-        else if (0 == strcmp("off", switch_obj->valuestring))
-        {
-            SWITCH_OFF;    // 继电器关
-            switch_on_off = 0;
-        }
-
-        snprintf(out_buf, len, CONTROL_RESPONSE_MSG, dev_uuid, req_id, 0);
-        ret = 0;
     }
     else if (0 == strcmp("set_time", cmd_obj->valuestring))
     {
@@ -321,5 +316,6 @@ static int handle_json_msg(char *msg, char *out_buf, int len)
         snprintf(out_buf, len, MATCH_RESPONSE_MSG, dev_uuid, req_id, dev_uuid);
         ret = 0;
     }
+    
     return ret;
 }

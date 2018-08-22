@@ -16,9 +16,9 @@
 // IRQ_DID0     PC2
 
 // 其他引脚 
-// 按键         PB7
+// 按键         PB7 => PB3
 // 状态         PD0
-// 开关         PB6
+// 开关         PB6 => PB2
 
 static void clock_config(uint8 sys_clk);
 
@@ -40,7 +40,7 @@ void system_config_clk_init(void)
 // 初始化GPIO
 void system_config_gpio_config(void)
 {
-
+    // STM8S105K6 没有PB6 PB7 所以使用 PB2 PB3代替
     GPIO_DeInit(GPIOB);
     GPIO_DeInit(GPIOC);
     GPIO_DeInit(GPIOD);
@@ -59,11 +59,42 @@ void system_config_gpio_config(void)
     GPIO_Init(GPIOC, GPIO_PIN_6, GPIO_MODE_OUT_PP_HIGH_FAST); // SDI
     GPIO_Init(GPIOC, GPIO_PIN_7, GPIO_MODE_IN_PU_NO_IT);      // SDO
 
+    // 插座状态 和 插座继电器控制
+    GPIO_Init(GPIOD, GPIO_PIN_0, GPIO_MODE_OUT_PP_HIGH_FAST); // 是否收到信号 状态
+    GPIO_Init(GPIOB, GPIO_PIN_2, GPIO_MODE_OUT_PP_LOW_FAST); // 继电器  必须设置为低电平 否则会一上电 继电器就是开的状态
+    
+    GPIO_Init(GPIOB, GPIO_PIN_3, GPIO_MODE_IN_PU_IT);
+    EXTI_SetExtIntSensitivity(EXTI_PORT_GPIOB, EXTI_SENSITIVITY_RISE_FALL); // EXTI_SENSITIVITY_RISE_ONLY); 
+    // EXTI_SetTLISensitivity(EXTI_TLISENSITIVITY_RISE_ONLY);
+
+    GPIO_WriteHigh(GPIOB, GPIO_PIN_2);
+    GPIO_WriteLow(GPIOB, GPIO_PIN_2);
+    
+    GPIO_WriteHigh(GPIOD, GPIO_PIN_0);
+    GPIO_WriteLow(GPIOD, GPIO_PIN_0);
+    
+#if 0
+    GPIO_DeInit(GPIOB);
+    GPIO_DeInit(GPIOC);
+    GPIO_DeInit(GPIOD);
+    // GPIO_DeInit(GPIOE);
+
+    // 中断引脚 没用到中断 只用到了电平判断
+    // GPIO_Init(GPIOC, GPIO_PIN_2, GPIO_MODE_IN_PU_NO_IT);          
+    GPIO_Init(GPIOC, GPIO_PIN_2, GPIO_MODE_IN_PU_IT);         // GIO0
+    EXTI_SetExtIntSensitivity(EXTI_PORT_GPIOC, EXTI_SENSITIVITY_RISE_ONLY); 
+
+    // EXTI_SetTLISensitivity(EXTI_TLISENSITIVITY_FALL_ONLY);
+
+    GPIO_Init(GPIOC, GPIO_PIN_3, GPIO_MODE_OUT_PP_HIGH_FAST); // CE SX1278 - RST
+    GPIO_Init(GPIOC, GPIO_PIN_4, GPIO_MODE_OUT_PP_HIGH_FAST); // CS
+    GPIO_Init(GPIOC, GPIO_PIN_5, GPIO_MODE_OUT_PP_LOW_FAST);  // SCK
+    GPIO_Init(GPIOC, GPIO_PIN_6, GPIO_MODE_OUT_PP_HIGH_FAST); // SDI
+    GPIO_Init(GPIOC, GPIO_PIN_7, GPIO_MODE_IN_PU_NO_IT);      // SDO
 
     // 插座状态 和 插座继电器控制
     GPIO_Init(GPIOD, GPIO_PIN_0, GPIO_MODE_OUT_PP_HIGH_FAST); // 是否收到信号 状态
     GPIO_Init(GPIOB, GPIO_PIN_6, GPIO_MODE_OUT_PP_LOW_FAST); // 继电器  必须设置为低电平 否则会一上电 继电器就是开的状态
-
 
     // GPIO_Init(GPIOB, GPIO_PIN_7, GPIO_MODE_IN_PU_NO_IT);      // 按键 每按一次 翻转一次
     GPIO_Init(GPIOB, GPIO_PIN_7, GPIO_MODE_IN_PU_IT);
@@ -88,6 +119,7 @@ void system_config_gpio_config(void)
             printf("b");
         }
     }
+#endif
     
 #if 0    
     GPIO_DeInit(GPIOA);

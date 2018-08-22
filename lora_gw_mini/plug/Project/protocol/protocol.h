@@ -28,7 +28,10 @@
 //该消息不需要回复，状态有变化或者每隔1分钟需要上报该消息
 //Payload：1字节，开关状态为开时0x01，关时为0x00
 
-typedef void (*cmb_handle_cb)(char * mac, char cmd);
+typedef void (*cmb_handle_cb)(char * mac, char cmd, char value);
+
+// 设置回调
+void protocol_set_cb(cmb_handle_cb cb);
 
 // 处理命令
 int protocol_handle_cmd(char * buf, char len);

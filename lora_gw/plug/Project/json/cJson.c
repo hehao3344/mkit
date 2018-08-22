@@ -116,7 +116,8 @@ static const char *parse_number(cJSON *item,const char *num)
     if(sign == 1)
         item->valueull   = ull;
     item->valuelonglong = (long long)ull*sign;
-    item->valueint=(int)ull*sign;
+    //item->valueint=(int)ull*sign;
+    item->valueint=(long)ull*sign;
     item->type=cJSON_Number;
 
     if(scale < 0)
@@ -790,13 +791,13 @@ cJSON *cJSON_CreateNull(void)                   {cJSON *item=cJSON_New_Item();if
 cJSON *cJSON_CreateTrue(void)                   {cJSON *item=cJSON_New_Item();if(item)item->type=cJSON_True;return item;}
 cJSON *cJSON_CreateFalse(void)                  {cJSON *item=cJSON_New_Item();if(item)item->type=cJSON_False;return item;}
 cJSON *cJSON_CreateBool(int b)                  {cJSON *item=cJSON_New_Item();if(item)item->type=b?cJSON_True:cJSON_False;return item;}
-cJSON *cJSON_CreateNumber(double num)           {cJSON *item=cJSON_New_Item();if(item){item->type=cJSON_Number;item->valuedouble=num;item->valueint=(int)num;item->number_type=NUMBER_DOUBLE;}return item;}
+cJSON *cJSON_CreateNumber(double num)           {cJSON *item=cJSON_New_Item();if(item){item->type=cJSON_Number;item->valuedouble=num;item->valueint=(long)num;item->number_type=NUMBER_DOUBLE;}return item;}
 cJSON *cJSON_CreateString(const char *string)   {cJSON *item=cJSON_New_Item();if(item){item->type=cJSON_String;item->valuestring=cJSON_strdup(string);}return item;}
 cJSON *cJSON_CreateArray(void)                  {cJSON *item=cJSON_New_Item();if(item)item->type=cJSON_Array;return item;}
 cJSON *cJSON_CreateObject(void)                 {cJSON *item=cJSON_New_Item();if(item)item->type=cJSON_Object;return item;}
-cJSON *cJSON_CreateInt(int num)                 {cJSON *item=cJSON_New_Item();if(item){item->type=cJSON_Number;item->valuelonglong=num;item->valueint=(int)num;item->number_type=NUMBER_LONGLONG;}return item;}
-cJSON *cJSON_CreateLongLong(long long num)      {cJSON *item=cJSON_New_Item();if(item){item->type=cJSON_Number;item->valuelonglong=num;item->valueint=(int)num;item->number_type=NUMBER_LONGLONG;}return item;}
-cJSON *cJSON_CreateUll(unsigned long long num)  {cJSON *item=cJSON_New_Item();if(item){item->type=cJSON_Number;item->valueull=num;item->valuelonglong=num;item->valueint=(int)num;item->number_type=NUMBER_ULL;}return item;}
+cJSON *cJSON_CreateInt(int num)                 {cJSON *item=cJSON_New_Item();if(item){item->type=cJSON_Number;item->valuelonglong=num;item->valueint=(long)num;item->number_type=NUMBER_LONGLONG;}return item;}
+cJSON *cJSON_CreateLongLong(long long num)      {cJSON *item=cJSON_New_Item();if(item){item->type=cJSON_Number;item->valuelonglong=num;item->valueint=(long)num;item->number_type=NUMBER_LONGLONG;}return item;}
+cJSON *cJSON_CreateUll(unsigned long long num)  {cJSON *item=cJSON_New_Item();if(item){item->type=cJSON_Number;item->valueull=num;item->valuelonglong=num;item->valueint=(long)num;item->number_type=NUMBER_ULL;}return item;}
 
 /* Create Arrays: */
 cJSON *cJSON_CreateIntArray(const int *numbers,int count)       {int i;cJSON *n=0,*p=0,*a=cJSON_CreateArray();for(i=0;a && i<count;i++){n=cJSON_CreateNumber(numbers[i]);if(!i)a->child=n;else suffix_object(p,n);p=n;}return a;}

@@ -3,6 +3,7 @@
 #include "../rf/sx1276_hal.h"
 #include "../sys_mgr/time1.h"
 #include "../crypto/packet.h"
+#include "../protocol/protocol.h"
 #include "../crypto/crypto_api.h"
 #include "../protocol/protocol.h"
 #include "../flash/flash_eeprom.h"
@@ -26,18 +27,17 @@ static int    sys_sec = 0;
 static int    match_end = 0;    /* 配对模式结束的秒数 */
 static uint8  sys_mode  = 0;    /* 0 正常工作模式 1 配对模式 */
 
-static int handle_json_msg(char *msg, char *out_buf, int len);
 static void delay_ms(uint32 ms);
 static void recv_data_fn(char *buffer, unsigned short len);
+static void handle_cb(char * mac, char cmd, char value);
 
 void sys_mgr_init(void)
 {
     system_config_clk_init();
-
     system_config_gpio_config();
 
-
-
+    protocol_set_cb(handle_cb);
+     
 #if WRITE_MAC
     sys_mgr_write_mac();
     return;
@@ -65,8 +65,7 @@ void sys_mgr_init(void)
     time1_set_value(0, 0); // 发送
     time1_set_value(1, 0); // 没用到
     time1_set_value(2, 0); // 按键  在stm8s_it.c中有用到
-    time1_set_value(3, 0); // 串口发送计时
-  
+    time1_set_value(3, 0); // 串口发送计时  
 }
 
 void sys_mgr_send_msg(void)
@@ -80,9 +79,7 @@ void sys_mgr_send_msg(void)
     {
         // 判断是否是反馈消息
         // is_response = (led_count_response > 0) ? 1 : 0;
-
-        memset(send_buf, 0, sizeof(send_buf));
-        
+        memset(send_buf, 0, sizeof(send_buf));        
 
         int out_len = sizeof(tmp_buf);
         if (0 == packet_enc((char *)send_buf, strlen((char *)send_buf), (char *)tmp_buf, &out_len))
@@ -137,33 +134,15 @@ static void recv_data_fn(char *buffer, unsigned short len)
     if (len > 0)
     {
         crypto_api_decrypt_buffer(buffer, len);
-
         int out_len = sizeof(tmp_buf);
         if (0 == packet_dec(buffer, len, (char *)tmp_buf, &out_len))
         {
-            //printf("get data from 1278 is %s \n", tmp_buf);
-
-            handle_json_msg((char *)tmp_buf, (char *)tmp_buf, sizeof(tmp_buf));
-            /* 发送给SX1278 */
-
+            //printf("get data from 1278 is %s \n", tmp_buf);            
+            protocol_handle_cmd((char *)tmp_buf, out_len);            
+            
         }
     }
 }
-
-#if 0
-    if (1 == rf_device_result->switch_on_off)
-    {
-        // 打开开关
-        SWITCH_ON;     // 继电器开
-        switch_on_off = 1;
-    }
-    else
-    {
-        SWITCH_OFF;    // 继电器关
-        switch_on_off = 0;
-    }
-#endif
-
 
 void sys_mgr_handle_key(void)
 {
@@ -204,17 +183,31 @@ static void delay_ms(uint32 ms)
     }
 }
 
-static int handle_json_msg(char *msg, char *out_buf, int len)
-{    
-    int ret = 0;
-
-    // 打开开关
-    SWITCH_ON;     // 继电器开
-    switch_on_off = 1;
-
-    SWITCH_OFF;    // 继电器关
-    switch_on_off = 0;
-    
-
-    return ret;
+static void handle_cb(char * mac, char cmd, char value)
+{
+    switch(cmd)
+    {
+        case 0x01:
+        {
+            if (0x01 == value)
+            {
+                SWITCH_ON;     /* 继电器开 */
+                switch_on_off = 1;
+            }
+            else
+            {
+                SWITCH_OFF;     /* 继电器关 */
+                switch_on_off = 0;
+            }            
+            char * resp = protocol_switch_resp(1, 1);
+            
+            /* 发送给SX1278中控 */
+                        
+            break;
+        }
+        case 0x02:
+        {
+            break;
+        }
+    }
 }
