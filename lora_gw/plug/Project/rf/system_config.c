@@ -66,12 +66,6 @@ void system_config_gpio_config(void)
     GPIO_Init(GPIOB, GPIO_PIN_3, GPIO_MODE_IN_PU_IT);
     EXTI_SetExtIntSensitivity(EXTI_PORT_GPIOB, EXTI_SENSITIVITY_RISE_FALL); // EXTI_SENSITIVITY_RISE_ONLY); 
     // EXTI_SetTLISensitivity(EXTI_TLISENSITIVITY_RISE_ONLY);
-
-    GPIO_WriteHigh(GPIOB, GPIO_PIN_2);
-    GPIO_WriteLow(GPIOB, GPIO_PIN_2);
-    
-    GPIO_WriteHigh(GPIOD, GPIO_PIN_0);
-    GPIO_WriteLow(GPIOD, GPIO_PIN_0);
     
 #if 0
     GPIO_DeInit(GPIOB);

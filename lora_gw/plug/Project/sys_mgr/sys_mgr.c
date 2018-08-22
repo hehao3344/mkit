@@ -5,7 +5,6 @@
 #include "../sys_mgr/time1.h"
 #include "../crypto/packet.h"
 #include "../crypto/crypto_api.h"
-#include "../protocol/protocol.h"
 #include "../flash/flash_eeprom.h"
 #include "sys_mgr.h"
 #include <string.h>
