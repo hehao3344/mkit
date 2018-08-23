@@ -22,9 +22,10 @@ static uint8  status_led_flags  = 0;
 static uint8  send_timer_count  = 0;
 static uint8  send_buf[128];
 static uint8  tmp_buf[136];
-static long   sys_sec = 0;
-static long   match_end = 0;    /* 配对模式结束的秒数 */
 static uint8  sys_mode  = 0;    /* 0 正常工作模式 1 配对模式 */
+
+static long   pre_ts    = 0;
+static long   match_end = 0;    /* 配对模式结束的秒数 */
 
 static int handle_json_msg(char *msg, char *out_buf, int len);
 static void delay_ms(uint32 ms);
@@ -49,7 +50,6 @@ void sys_mgr_init(void)
         memset(dev_uuid, 0, sizeof(dev_uuid));
         sprintf((char *)dev_uuid, "02%02X%02X%02X%02X%02X%02X", (int)device_mac[0], (int)device_mac[1],
                             (int)device_mac[2], (int)device_mac[3], (int)device_mac[4], (int)device_mac[5]);
-        // device_address = device_mac[4];
     }
 
     sx1276_hal_register_rf_func();
@@ -61,7 +61,7 @@ void sys_mgr_init(void)
     time1_init();
 
     time1_set_value(0, 0); // 发送
-    time1_set_value(1, 0); // 没用到
+    time1_set_value(1, 0); // 配对用
     time1_set_value(2, 0); // 按键  在stm8s_it.c中有用到
     time1_set_value(3, 0); // 串口发送计时
 }
@@ -78,8 +78,8 @@ void sys_mgr_init(void)
 void sys_mgr_send_msg(void)
 {
     uint8 i;
-    uint32 timer3_ms  = 0;                      // 发送周期计时器
-    timer3_ms         = time1_get_value(0);     // 定时器0
+    uint32 timer3_ms = 0;                      // 发送周期计时器
+    timer3_ms        = time1_get_value(0);     // 定时器0
 
     // 收到从ASR发送过来的消息之后 必须立即给回应
     if ((timer3_ms >= 10000) || (led_count_response > 0))
@@ -97,9 +97,8 @@ void sys_mgr_send_msg(void)
             crypto_api_encrypt_buffer((char *)tmp_buf, out_len);
 
             sx1276_hal_rf_send_packet(tmp_buf, out_len);
-            delay_ms(100);        // 发送之后 给予一定的延时
+            delay_ms(100);          // 发送之后 给予一定的延时
             sx1276_hal_rx_mode();   // 设置为接收模式
-
 
             // 收到消息 第二次把反馈消息发送出去后 开始闪烁
             if ((MAX_SEND_NUM - 1) == led_count_response)
@@ -150,8 +149,29 @@ static void recv_data_fn(char *buffer, unsigned short len)
             printf("get data from 1278 is %s \n", tmp_buf);
 
             handle_json_msg((char *)tmp_buf, (char *)tmp_buf, sizeof(tmp_buf));
-            /* 发送给SX1278 */
-
+            
+            int out_len = sizeof(tmp_buf);
+            if (0 == packet_enc((char *)send_buf, strlen((char *)send_buf), (char *)tmp_buf, &out_len))
+            {
+                /* 加密 */
+                crypto_api_encrypt_buffer((char *)tmp_buf, out_len);
+    
+                sx1276_hal_rf_send_packet(tmp_buf, out_len);
+                delay_ms(100);          // 发送之后 给予一定的延时
+                sx1276_hal_rx_mode();   // 设置为接收模式
+            
+            
+                /* 发送给SX1278 */
+                sx1276_hal_rf_send_packet(tmp_buf, out_len);
+                delay_ms(100);          // 发送之后 给予一定的延时
+                sx1276_hal_rx_mode();   // 设置为接收模式
+                
+                u32 match_ms = time1_get_value(1);
+                if (match_ms < 60000)
+                {
+                    
+                }
+            }
         }
     }
 }
@@ -255,7 +275,7 @@ static int handle_json_msg(char *msg, char *out_buf, int len)
     }
 
     long cur_ts = sub_obj->valueint;
-    /* 判断ts如果和系统的时间戳相差10s以上则认为该指令非法 */
+    /* 如果两条质量的ts相同则认为非法 */
 
     cJSON * attr_obj = cJSON_GetObjectItem(sub_obj, "attr");
     if (NULL == attr_obj)
@@ -271,7 +291,8 @@ static int handle_json_msg(char *msg, char *out_buf, int len)
 
     if (0 == strcmp("set_switch", cmd_obj->valuestring))
     {
-        if ((cur_ts - sys_sec) <= 10)
+        /* 相同时间戳的指令仅执行一次 */
+        if (cur_ts != pre_ts)
         {
             cJSON * switch_obj = cJSON_GetObjectItem(cmd_obj, "switch");
             if (NULL == switch_obj)
@@ -288,32 +309,37 @@ static int handle_json_msg(char *msg, char *out_buf, int len)
             {
                 SWITCH_OFF;    // 继电器关
                 switch_on_off = 0;
-            }
-    
+            }    
             snprintf(out_buf, len, CONTROL_RESPONSE_MSG, dev_uuid, req_id, 0);
             ret = 0;
         }
+        pre_ts = cur_ts;
     }
     else if (0 == strcmp("set_time", cmd_obj->valuestring))
     {
+        // 不支持设置时间
+        /*
         cJSON * ts_obj = cJSON_GetObjectItem(cmd_obj, "ts");
         if (NULL == ts_obj)
         {
             return -1;
         }
-        sys_sec = ts_obj->valueint;
+        pre_ts = ts_obj->valueint;
 
         snprintf(out_buf, len, CONTROL_RESPONSE_MSG, dev_uuid, req_id, 0);
         ret = 0;
+        */
     }
     else if (0 == strcmp("set_match", cmd_obj->valuestring))
     {
-        /* 开始配对 */
-        sys_mode = 1;
-        match_end = sys_sec + 60; /* 60秒配对时间 */
-
-        snprintf(out_buf, len, MATCH_RESPONSE_MSG, dev_uuid, req_id, dev_uuid);
-        ret = 0;
+        if (cur_ts != pre_ts)
+        {
+            /* 开始配对 */          
+            time1_set_value(1, 0); // 配对用            
+            snprintf(out_buf, len, MATCH_RESPONSE_MSG, dev_uuid, req_id, dev_uuid);
+            ret = 0;
+        }
+        pre_ts = cur_ts;
     }
     
     return ret;

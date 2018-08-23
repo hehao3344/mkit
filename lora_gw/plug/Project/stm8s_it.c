@@ -129,7 +129,7 @@ INTERRUPT_HANDLER(EXTI_PORTB_IRQHandler, 4)
         press_start_ms = time1_get_value(2);
     }
 
-    if ( GPIO_ReadInputPin(GPIOB, GPIO_PIN_3))
+    if (GPIO_ReadInputPin(GPIOB, GPIO_PIN_3))
     {
         if (((time1_get_value(2) - press_start_ms) >60) &&
             ((time1_get_value(2) - press_start_ms) < 2000))

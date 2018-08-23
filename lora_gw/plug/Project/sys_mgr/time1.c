@@ -36,6 +36,7 @@ void time1_set_value(u32 index, u32 value)
     }
     else if (2 == index)
     {
+        /* 按键使用 */
         timing_delay2 = value;
     }
     else if (3 == index)
