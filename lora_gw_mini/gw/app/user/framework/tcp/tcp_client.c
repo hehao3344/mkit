@@ -26,6 +26,7 @@ typedef struct _TCP_CLIENT_OBJECT
     struct espconn  proxy_svr_conn;
     struct _esp_tcp proxy_user_tcp;
 
+    os_timer_t      dns_find_timer;
     os_timer_t      register_timer; // contain keep alive.
     ip_addr_t       proxy_server_ip;
 
@@ -41,6 +42,9 @@ LOCAL void ICACHE_FLASH_ATTR proxy_connect_cb(void *arg);
 LOCAL void ICACHE_FLASH_ATTR proxy_discon_cb(void *arg);
 LOCAL void ICACHE_FLASH_ATTR proxy_recon_cb(void *arg, sint8 err);
 LOCAL void ICACHE_FLASH_ATTR connect_proxy_server(void);
+LOCAL void ICACHE_FLASH_ATTR user_dns_found(const char *name, ip_addr_t *ipaddr, void *arg);
+LOCAL void ICACHE_FLASH_ATTR user_dns_check_cb(void *arg);
+LOCAL void ICACHE_FLASH_ATTR dns_to_ip_start(void);
 
 boolean ICACHE_FLASH_ATTR tcp_client_create(void)
 {
@@ -50,6 +54,7 @@ boolean ICACHE_FLASH_ATTR tcp_client_create(void)
         os_printf("tcp dev not enough memory \n");
         return FALSE;
     }
+
 
     handle->proxy_svr_conn.proto.tcp = &handle->proxy_user_tcp;
     handle->proxy_svr_conn.type      = ESPCONN_TCP;
@@ -101,6 +106,88 @@ boolean ICACHE_FLASH_ATTR tcp_client_create(void)
 
     os_printf("[tcp client] create ok \n");
     return TRUE;
+}
+
+
+/******************************************************************************
+ * FunctionName : user_dns_found
+ * Description  : dns found callback
+ * Parameters   : name -- pointer to the name that was looked up.
+ *                ipaddr -- pointer to an ip_addr_t containing the IP address of
+ *                the hostname, or NULL if the name could not be found (or on any
+ *                other error).
+ *                callback_arg -- a user-specified callback argument passed to
+ *                dns_gethostbyname
+ * Returns      : none
+*******************************************************************************/
+LOCAL void ICACHE_FLASH_ATTR user_dns_found(const char *name, ip_addr_t *ipaddr, void *arg)
+{
+    TCP_CLIENT_OBJECT *handle = instance();
+    struct espconn *pespconn = (struct espconn *)arg;
+
+    if (NULL == ipaddr)
+    {
+        os_printf("user_dns_found NULL \r\n");
+        return;
+    }
+
+    //dns got ip
+    os_printf("user_dns_found %d.%d.%d.%d \r\n",
+                *((uint8 *)&ipaddr->addr), *((uint8 *)&ipaddr->addr + 1),
+                    *((uint8 *)&ipaddr->addr + 2), *((uint8 *)&ipaddr->addr + 3));
+
+    if (handle->proxy_server_ip.addr == 0 && ipaddr->addr != 0)
+    {
+        // dns succeed, create tcp connection
+        os_timer_disarm(&handle->dns_find_timer);
+        handle->proxy_server_ip.addr = ipaddr->addr;
+        os_memcpy(pespconn->proto.tcp->remote_ip, &ipaddr->addr, 4);    // remote ip of tcp server which get by dns
+        pespconn->proto.tcp->remote_port = TCP_REMOTE_SERVER_PORT;      // remote port of tcp server
+        pespconn->proto.tcp->local_port = espconn_port();               //local port of ESP8266
+
+        connect_proxy_server();
+
+        espconn_regist_connectcb(pespconn, user_tcp_connect_cb); // register connect callback
+        espconn_regist_reconcb(pespconn, user_tcp_recon_cb); // register reconnect callback as error handler
+
+        espconn_connect(pespconn); // tcp connect
+    }
+}
+
+/*******************************************************************************
+ * FunctionName : user_esp_platform_dns_check_cb
+ * Description  : 1s time callback to check dns found
+ * Parameters   : arg -- Additional argument to pass to the callback function
+ * Returns      : none
+*******************************************************************************/
+LOCAL void ICACHE_FLASH_ATTR user_dns_check_cb(void *arg)
+{
+    struct espconn *pespconn = arg;
+    TCP_CLIENT_OBJECT *handle = instance();
+
+    espconn_gethostbyname(pespconn, TCP_IOT_SERVER_URL, &handle->proxy_server_ip, user_dns_found); // recall DNS function
+
+    os_printf("dns_check\n");
+    os_timer_arm(&handle->dns_find_timer, 1000, 0);
+}
+
+
+LOCAL void ICACHE_FLASH_ATTR dns_to_ip_start(void)
+{
+    TCP_CLIENT_OBJECT *handle = instance();
+
+    // Connect to tcp server as TCP_IOT_SERVER_URL
+    handle->proxy_svr_conn.proto.tcp = &user_tcp;
+    handle->proxy_svr_conn.type   = ESPCONN_TCP;
+    handle->proxy_svr_conn.state  = ESPCONN_NONE;
+
+    handle->proxy_server_ip.addr  = 0;
+
+    espconn_gethostbyname(&user_tcp_conn, TCP_IOT_SERVER_URL, &handle->proxy_server_ip, user_dns_found); // DNS function
+
+    os_timer_disarm(&handle->dns_find_timer);
+    os_timer_setfn(&handle->dns_find_timer, (os_timer_func_t *)user_dns_check_cb, handle->proxy_svr_conn);
+    os_timer_arm(&handle->dns_find_timer, 1000, 0);
 }
 
 void ICACHE_FLASH_ATTR tcp_client_set_callback(recv_data_callback cb, void *arg)

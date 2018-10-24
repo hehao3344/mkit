@@ -12,10 +12,10 @@
 #include "tcp_server.h"
 
 typedef struct _TCP_SERVER_OBJECT
-{    
+{
     struct espconn  commu_conn;
     struct _esp_tcp commu_user_tcp;
-  
+
     recv_callback cb;
     void *arg;
 
@@ -60,7 +60,7 @@ void ICACHE_FLASH_ATTR tcp_server_set_callback(recv_callback cb, void *arg)
 void tcp_server_send_msg(char * buffer, int len)
 {
     TCP_SERVER_OBJECT *handle = instance();
-    
+
     espconn_sent(&handle->commu_conn, buffer, len);
     //os_printf("remote: %d.%d.%d.%d:%d\n",
     //            handle->commu_conn.proto.tcp->remote_ip[0],
@@ -120,5 +120,5 @@ LOCAL void ICACHE_FLASH_ATTR commu_recv(void *arg, char *buffer, unsigned short 
 {
     TCP_SERVER_OBJECT *handle = instance();
 
-    handle->cb(handle->arg, buffer, (int)length);               
+    handle->cb(handle->arg, buffer, (int)length);
 }

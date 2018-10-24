@@ -7,6 +7,9 @@
 extern "C" {
 #endif
 
+
+#define TCP_IOT_SERVER_URL              "www.iowin.cn"
+#define TCP_REMOTE_SERVER_PORT          10080
 #define TCP_SERVER_REMOTE_IP            "120.55.58.166"
 #define TCP_SERVER_REMOTE_PORT          (7447)
 #define TCP_CLIENT_LOCAL_PORT           (7668)
