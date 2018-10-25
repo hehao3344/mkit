@@ -2,6 +2,7 @@
 #include <string.h>
 
 #include "../core/core.h"
+#include "upgrade.h"
 #include "user_interface.h"
 #include "ets_sys.h"
 #include "os_type.h"
@@ -23,12 +24,14 @@ typedef struct _TCP_CLIENT_OBJECT
 
     int8 inform_buf[64];
     int8 mac[40];
+
     struct espconn  proxy_svr_conn;
     struct _esp_tcp proxy_user_tcp;
 
     os_timer_t      dns_find_timer;
     os_timer_t      register_timer; // contain keep alive.
     ip_addr_t       proxy_server_ip;
+    boolean         got_dns_ip;
 
     recv_data_callback cb;
     void *arg;
@@ -45,6 +48,17 @@ LOCAL void ICACHE_FLASH_ATTR connect_proxy_server(void);
 LOCAL void ICACHE_FLASH_ATTR user_dns_found(const char *name, ip_addr_t *ipaddr, void *arg);
 LOCAL void ICACHE_FLASH_ATTR user_dns_check_cb(void *arg);
 LOCAL void ICACHE_FLASH_ATTR dns_to_ip_start(void);
+LOCAL void ICACHE_FLASH_ATTR user_esp_platform_upgrade_rsp(void *arg);
+LOCAL void ICACHE_FLASH_ATTR user_esp_platform_upgrade_begin(struct espconn *pespconn, struct upgrade_server_info *server);
+
+
+#define HEAD_BUFFER "Connection: keep-alive\r\n\
+Cache-Control: no-cache\r\n\
+User-Agent: Mozilla/5.0 (Windows NT 5.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/30.0.1599.101 Safari/537.36 \r\n\
+Accept: */*\r\n\
+Authorization: token %s\r\n\
+Accept-Encoding: gzip,deflate,sdch\r\n\
+Accept-Language: zh-CN,zh;q=0.8\r\n\r\n"
 
 boolean ICACHE_FLASH_ATTR tcp_client_create(void)
 {
@@ -123,6 +137,7 @@ boolean ICACHE_FLASH_ATTR tcp_client_create(void)
 LOCAL void ICACHE_FLASH_ATTR user_dns_found(const char *name, ip_addr_t *ipaddr, void *arg)
 {
     TCP_CLIENT_OBJECT *handle = instance();
+
     struct espconn *pespconn = (struct espconn *)arg;
 
     if (NULL == ipaddr)
@@ -131,26 +146,26 @@ LOCAL void ICACHE_FLASH_ATTR user_dns_found(const char *name, ip_addr_t *ipaddr,
         return;
     }
 
-    //dns got ip
+    // dns got ip
     os_printf("user_dns_found %d.%d.%d.%d \r\n",
                 *((uint8 *)&ipaddr->addr), *((uint8 *)&ipaddr->addr + 1),
                     *((uint8 *)&ipaddr->addr + 2), *((uint8 *)&ipaddr->addr + 3));
 
-    if (handle->proxy_server_ip.addr == 0 && ipaddr->addr != 0)
+    if ((0 == handle->proxy_server_ip.addr) && (0 != ipaddr->addr))
     {
         // dns succeed, create tcp connection
         os_timer_disarm(&handle->dns_find_timer);
         handle->proxy_server_ip.addr = ipaddr->addr;
         os_memcpy(pespconn->proto.tcp->remote_ip, &ipaddr->addr, 4);    // remote ip of tcp server which get by dns
         pespconn->proto.tcp->remote_port = TCP_REMOTE_SERVER_PORT;      // remote port of tcp server
-        pespconn->proto.tcp->local_port = espconn_port();               //local port of ESP8266
+        pespconn->proto.tcp->local_port  = espconn_port();               // local port of ESP8266
 
-        connect_proxy_server();
+        // connect_proxy_server();
 
-        espconn_regist_connectcb(pespconn, user_tcp_connect_cb); // register connect callback
-        espconn_regist_reconcb(pespconn, user_tcp_recon_cb); // register reconnect callback as error handler
-
-        espconn_connect(pespconn); // tcp connect
+        os_printf("start tcp connect to ... %d.%d.%d.%d \r\n",
+                    *((uint8 *)&ipaddr->addr), *((uint8 *)&ipaddr->addr + 1),
+                        *((uint8 *)&ipaddr->addr + 2), *((uint8 *)&ipaddr->addr + 3));
+        handle->got_dns_ip = 1;
     }
 }
 
@@ -163,6 +178,7 @@ LOCAL void ICACHE_FLASH_ATTR user_dns_found(const char *name, ip_addr_t *ipaddr,
 LOCAL void ICACHE_FLASH_ATTR user_dns_check_cb(void *arg)
 {
     struct espconn *pespconn = arg;
+
     TCP_CLIENT_OBJECT *handle = instance();
 
     espconn_gethostbyname(pespconn, TCP_IOT_SERVER_URL, &handle->proxy_server_ip, user_dns_found); // recall DNS function
@@ -177,13 +193,13 @@ LOCAL void ICACHE_FLASH_ATTR dns_to_ip_start(void)
     TCP_CLIENT_OBJECT *handle = instance();
 
     // Connect to tcp server as TCP_IOT_SERVER_URL
-    handle->proxy_svr_conn.proto.tcp = &user_tcp;
+    handle->proxy_svr_conn.proto.tcp = &handle->proxy_user_tcp;
     handle->proxy_svr_conn.type   = ESPCONN_TCP;
     handle->proxy_svr_conn.state  = ESPCONN_NONE;
 
     handle->proxy_server_ip.addr  = 0;
 
-    espconn_gethostbyname(&user_tcp_conn, TCP_IOT_SERVER_URL, &handle->proxy_server_ip, user_dns_found); // DNS function
+    espconn_gethostbyname(&handle->proxy_svr_conn, TCP_IOT_SERVER_URL, &handle->proxy_server_ip, user_dns_found); // DNS function
 
     os_timer_disarm(&handle->dns_find_timer);
     os_timer_setfn(&handle->dns_find_timer, (os_timer_func_t *)user_dns_check_cb, handle->proxy_svr_conn);
@@ -235,8 +251,9 @@ LOCAL void ICACHE_FLASH_ATTR connect_proxy_server(void)
 {
     TCP_CLIENT_OBJECT *handle = instance();
 
-    handle->proxy_svr_conn.proto.tcp->local_port  = TCP_CLIENT_LOCAL_PORT;
-    handle->proxy_svr_conn.proto.tcp->remote_port = TCP_SERVER_REMOTE_PORT;
+    handle->proxy_svr_conn.proto.tcp->local_port  = espconn_port();               // local port of ESP8266
+    handle->proxy_svr_conn.proto.tcp->remote_port = TCP_REMOTE_SERVER_PORT;
+
     espconn_regist_connectcb(&handle->proxy_svr_conn, proxy_connect_cb);
     espconn_regist_disconcb(&handle->proxy_svr_conn,  proxy_discon_cb);
     espconn_regist_reconcb(&handle->proxy_svr_conn,   proxy_recon_cb);
@@ -291,7 +308,7 @@ static void ICACHE_FLASH_ATTR register_center(void *arg)
 
     wifi_get_ip_info(STATION_IF, &ipconfig);
     int status = wifi_station_get_connect_status();
-    if (status != STATION_GOT_IP)
+    if ((status != STATION_GOT_IP) || (0 == handle->got_dns_ip))
     {
         os_printf("waitting for ... \n");
         handle->proxy_is_handle  = FALSE;
@@ -328,5 +345,134 @@ LOCAL void ICACHE_FLASH_ATTR proxy_recv(void *arg, char *buffer, unsigned short 
     {
         os_printf("tcp recv msg [%s] len %d \n", buffer, length);
         handle->cb(handle->arg, buffer, length);
+
+        //struct upgrade_server_info *server = NULL;
+
+        //        server = (struct upgrade_server_info *)os_zalloc(sizeof(struct upgrade_server_info));
+        //        os_memcpy(server->upgrade_version, pstr + 12, 16);
+        //        server->upgrade_version[15] = '\0';
+        //        os_sprintf(server->pre_version,"%s%d.%d.%dt%d(%s)",VERSION_TYPE,IOT_VERSION_MAJOR,\
+        //            	IOT_VERSION_MINOR,IOT_VERSION_REVISION,device_type,UPGRADE_FALG);
+        //        user_esp_platform_upgrade_begin(pespconn, server);
+
     }
 }
+
+
+/******************************************************************************
+ * FunctionName : user_esp_platform_upgrade_cb
+ * Description  : Processing the downloaded data from the server
+ * Parameters   : pespconn -- the espconn used to connetion with the host
+ * Returns      : none
+*******************************************************************************/
+LOCAL void ICACHE_FLASH_ATTR user_esp_platform_upgrade_rsp(void *arg)
+{
+    struct upgrade_server_info *server = arg;
+    struct espconn *pespconn = server->pespconn;
+    // uint8 devkey[41] = {0};
+    uint8 *pbuf = NULL;
+    char *action = NULL;
+    // os_memcpy(devkey, esp_param.devkey, 40);
+
+    pbuf = (char *)os_zalloc(packet_size);  // 2k
+
+    if (server->upgrade_flag == true)
+    {
+        os_printf("user_esp_platform_upgarde_successfully\n");
+
+        //action = "device_upgrade_success";
+        //os_sprintf(pbuf, UPGRADE_FRAME, devkey, action, server->pre_version, server->upgrade_version);
+        //ESP_DBG("%s\n",pbuf);
+
+#ifdef CLIENT_SSL_ENABLE
+        espconn_secure_sent(pespconn, pbuf, os_strlen(pbuf));
+#else
+        espconn_sent(pespconn, pbuf, os_strlen(pbuf));
+#endif
+
+        if (pbuf != NULL)
+        {
+            os_free(pbuf);
+            pbuf = NULL;
+        }
+    }
+    else
+    {
+        os_printf("user_esp_platform_upgrade_failed\n");
+
+        //action = "device_upgrade_failed";
+        //os_sprintf(pbuf, UPGRADE_FRAME, devkey, action,server->pre_version, server->upgrade_version);
+        //ESP_DBG("%s\n",pbuf);
+
+#ifdef CLIENT_SSL_ENABLE
+        espconn_secure_sent(pespconn, pbuf, os_strlen(pbuf));
+#else
+        espconn_sent(pespconn, pbuf, os_strlen(pbuf));
+#endif
+
+        if (pbuf != NULL)
+        {
+            os_free(pbuf);
+            pbuf = NULL;
+        }
+    }
+
+    os_free(server->url);
+    server->url = NULL;
+    os_free(server);
+    server = NULL;
+}
+
+/******************************************************************************
+ * FunctionName : user_esp_platform_upgrade_begin
+ * Description  : Processing the received data from the server
+ * Parameters   : pespconn -- the espconn used to connetion with the host
+ *                server -- upgrade param
+ * Returns      : none
+*******************************************************************************/
+LOCAL void ICACHE_FLASH_ATTR user_esp_platform_upgrade_begin(struct espconn *pespconn, struct upgrade_server_info *server)
+{
+    uint8 user_bin[10] = {0};
+    server->pespconn = pespconn;
+    os_memcpy(server->ip, pespconn->proto.tcp->remote_ip, 4);
+
+#ifdef UPGRADE_SSL_ENABLE
+    server->port = 443;
+#else
+    server->port = 80;
+#endif
+
+    server->check_cb    = user_esp_platform_upgrade_rsp;
+    server->check_times = 120000;
+
+    if (server->url == NULL)
+    {
+        server->url = (uint8 *)os_zalloc(512);
+    }
+
+    if (system_upgrade_userbin_check() == UPGRADE_FW_BIN1)
+    {
+        os_memcpy(user_bin, "user2.bin", 10);
+    }
+    else if (system_upgrade_userbin_check() == UPGRADE_FW_BIN2)
+    {
+        os_memcpy(user_bin, "user1.bin", 10);
+    }
+
+    os_sprintf(server->url, "GET /%sfilename=%s HTTP/1.0\r\nHost: "IPSTR":%d\r\n"HEAD_BUFFER"",
+               server->upgrade_version, user_bin, IP2STR(server->ip),
+               server->port);
+    os_printf("%s\n", server->url);
+
+#ifdef UPGRADE_SSL_ENABLE
+    if (system_upgrade_start_ssl(server) == false)
+    {
+#else
+    if (system_upgrade_start(server) == false)
+    {
+#endif
+        os_printf("upgrade is already started\n");
+    }
+}
+#endif
+
