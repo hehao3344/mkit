@@ -60,6 +60,13 @@ Authorization: token %s\r\n\
 Accept-Encoding: gzip,deflate,sdch\r\n\
 Accept-Language: zh-CN,zh;q=0.8\r\n\r\n"
 
+#define UPGRADE_RESPONSE_JSON   "{\
+\"method\":\"up_msg\",\
+\"cc_uuid\":\"%S\",\
+\"req_id\":%d,\
+\"code\":%d\
+}"
+
 boolean ICACHE_FLASH_ATTR tcp_client_create(void)
 {
     TCP_CLIENT_OBJECT *handle = instance();
@@ -380,6 +387,8 @@ LOCAL void ICACHE_FLASH_ATTR user_esp_platform_upgrade_rsp(void *arg)
     {
         os_printf("user_esp_platform_upgarde_successfully\n");
 
+
+
         //action = "device_upgrade_success";
         //os_sprintf(pbuf, UPGRADE_FRAME, devkey, action, server->pre_version, server->upgrade_version);
         //ESP_DBG("%s\n",pbuf);
@@ -475,4 +484,108 @@ LOCAL void ICACHE_FLASH_ATTR user_esp_platform_upgrade_begin(struct espconn *pes
     }
 }
 #endif
+
+
+
+/***************************************************************************************************
+* static function.
+***************************************************************************************************/
+LOCAL int ICACHE_FLASH_ATTR msg_parse(struct jsontree_context *js_ctx, struct jsonparse_state *parse)
+{
+    int type;
+    char buffer[16] = {0};
+    TCP_CLIENT_OBJECT *handle = instance();
+    if (NULL == handle)
+    {
+        os_printf("invalid param \n");
+        return -1;
+    }
+    while ((type = jsonparse_next(parse)) != 0)
+    {
+        if (type == JSON_TYPE_PAIR_NAME)
+        {
+            if (jsonparse_strcmp_value(parse,"method") == 0)
+            {
+                int version=0;
+                jsonparse_next(parse);
+                jsonparse_next(parse);
+                os_memset(buffer, 0, sizeof(buffer));
+                jsonparse_copy_value(parse, buffer, sizeof(buffer));
+                os_printf("method = %s \n", buffer);
+            }
+            else if(jsonparse_strcmp_value(parse,"req_id") == 0)
+            {
+                int req_id = 0;
+                jsonparse_next(parse);
+                jsonparse_next(parse);
+                req_id = jsonparse_get_value_as_int(parse);
+                handle->req_id = req_id;
+                os_printf("req_id = %d \n", req_id);
+            }
+            else if(jsonparse_strcmp_value(parse, "cmd") == 0)
+            {
+                int req_id = 0;
+                jsonparse_next(parse);
+                jsonparse_next(parse);
+                jsonparse_copy_value(parse, buffer, sizeof(buffer));
+                os_printf("cmd = %s \n", buffer);
+
+                if (0 == os_strcmp("fw_upgrade", buffer))
+                {
+
+                    user_esp_platform_upgrade_begin(struct espconn *pespconn, struct upgrade_server_info *server)
+                }
+
+            }
+            else if(jsonparse_strcmp_value(parse, "version") == 0)
+            {
+                // 当版本号不一致时启动升级
+                struct upgrade_server_info *server = NULL;
+                server = (struct upgrade_server_info *)os_zalloc(sizeof(struct upgrade_server_info));
+                os_memcpy(server->upgrade_version, "V2.00", 4);
+                server->upgrade_version[15] = '\0';
+                os_sprintf(server->pre_version,"%s%d.%d.%dt%d(%s)", VERSION_TYPE,IOT_VERSION_MAJOR,
+                    	     IOT_VERSION_MINOR, IOT_VERSION_REVISION, device_type, UPGRADE_FALG);
+                user_esp_platform_upgrade_begin(&handle->proxy_svr_conn, server);
+            }
+
+            else if(jsonparse_strcmp_value(parse,"dev_uuid") == 0)
+            {
+                jsonparse_next(parse);
+                jsonparse_next(parse);
+                os_memset(handle->cur_dev_uuid, 0, sizeof(handle->cur_dev_uuid));
+                jsonparse_copy_value(parse, handle->cur_dev_uuid, sizeof(handle->cur_dev_uuid));
+                os_printf("cur uuid = %s \n", handle->cur_dev_uuid);
+            }
+        }
+    }
+
+    return 0;
+}
+
+struct jsontree_callback msg_callback = JSONTREE_CALLBACK(NULL, msg_parse);
+
+JSONTREE_OBJECT(msg_tree_sub,
+                JSONTREE_PAIR("cmd",  &msg_callback),);
+
+JSONTREE_OBJECT(msg_tree, JSONTREE_PAIR("dev_uuid", NULL),
+                          JSONTREE_PAIR("method", NULL),
+                          JSONTREE_PAIR("req_id", NULL),
+                          JSONTREE_PAIR("attr",  &msg_tree_sub));
+
+static void ICACHE_FLASH_ATTR recv_data_callback(void *arg, char *buffer, int length)
+{
+    APP_CC_OBJECT * handle = (APP_CC_OBJECT *)arg;
+    if (NULL == handle)
+    {
+        os_printf("invalid param \n");
+        return;
+    }
+
+    os_printf("receive len:%d msg:%s \n", length, buffer);
+
+    struct jsontree_context js;
+    jsontree_setup(&js, (struct jsontree_value *)&msg_tree, json_putchar);
+    json_parse(&js, buffer);
+}
 
