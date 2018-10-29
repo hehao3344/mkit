@@ -90,17 +90,6 @@ extern "C"
 #define IRQN_SEELP_Value                             0xFF
 #define PACKET_MIAX_Value                            0xff
 
-#if 0
-#define   KFB_LED_OFF()                     GPIO_WriteHigh(GPIOD,GPIO_PIN_1);\
-                                            GPIO_WriteHigh(GPIOA,GPIO_PIN_1)
-
-#define   KFB_LED_TX()                      GPIO_WriteLow(GPIOA,GPIO_PIN_1);\
-                                            GPIO_WriteHigh(GPIOD,GPIO_PIN_1)
-
-#define   KFB_LED_RX()                      GPIO_WriteHigh(GPIOA,GPIO_PIN_1);\
-                                            GPIO_WriteLow(GPIOD,GPIO_PIN_1)
-#endif
-
 typedef enum
 {
     SLEEP_MODE          = (uint8)0x00,
@@ -133,18 +122,19 @@ typedef enum
 
 typedef struct
 {
-   void  ( *lpByteWritefunc )( uint8 src );
-   uint8 ( *lpByteReadfunc )( void );
-   void  ( *lpSwitchEnStatus )( CmdEntype_t cmd );
-   void  ( *paSwitchCmdfunc )( CmdPaType_t cmd );
-   void  ( *lpRecvDataTousr )( uint8 *lpbuf, uint16 length );
+    void  (*lpHardwareInitfunc)(void);
+    void  (*lpByteWritefunc)(uint8 addr, uint8 src);
+    uint8 (*lpByteReadfunc)(uint8 addr);
+    void  (*lpSwitchEnStatus)(CmdEntype_t cmd);
+    void  (*paSwitchCmdfunc)(CmdPaType_t cmd);
+    void  (*lpRecvDataTousr)(uint8 *lpbuf, uint16 length );
 } lpCtrlTypefunc_t;
 
-void rx1276_register_rf_func( lpCtrlTypefunc_t *func );
-void sx1276_delay_1s( uint32 ii );
-void sx1276_lora_init( void );
-void sx1278_recv_handle( void );
-void rx1276_rf_send_packet( uint8 *rf_tran_buf, uint8 len );
+void rx1276_register_rf_func(lpCtrlTypefunc_t *func);
+void sx1276_delay_1s(uint32 ii);
+void sx1276_lora_init(void);
+void sx1278_recv_handle(void);
+void rx1276_rf_send_packet(uint8 *rf_tran_buf, uint8 len);
 
 #ifdef __cplusplus
 }

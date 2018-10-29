@@ -1,3 +1,5 @@
+#include "driver/spi_interface.h"
+
 #include "sx1276.h"
 #include "sx1276_hal.h"
 
@@ -5,11 +7,6 @@
 //PC7 (HS)/SPI_MISO
 //PC6 (HS)/SPI_MOSI
 //PC5 (HS)/SPI_SCK
-
-// GPIO D7 --- 红色 LED 状态指示 信号标示 快闪表示接收到信号
-// GPIO D6 --- 蓝色 LED 继电器状态 
-// GPIO D5 --- 按键 每按一次继电器翻转一次
-// GPIO C4 --- GPIO输入引脚 上升沿触发 表示收到 收发数据状态指示 连接到 SX1278 DIO0
 
 
 // 硬件连接
@@ -22,8 +19,9 @@
 
 #define  SX1278_SDO      1 //GPIO_ReadInputPin(GPIOC, GPIO_PIN_7)  // SPI输入
 
-#define  RF_REST_L       //GPIO_WriteLow(GPIOC, GPIO_PIN_3)
-#define  RF_REST_H       //GPIO_WriteHigh(GPIOC, GPIO_PIN_3)
+#define  RF_REST_L       gw_io_sx1278_rst_output(0);
+#define  RF_REST_H       gw_io_sx1278_rst_output(1); // GPIO_WriteHigh(GPIOC, GPIO_PIN_3)
+
 #define  RF_CE_L         //GPIO_WriteLow(GPIOF, GPIO_PIN_4)
 #define  RF_CE_H         //GPIO_WriteHigh(GPIOF, GPIO_PIN_4)
 #define  RF_CKL_L        //GPIO_WriteLow(GPIOC, GPIO_PIN_5)
@@ -32,8 +30,8 @@
 #define  RF_SDI_H        //GPIO_WriteHigh(GPIOC, GPIO_PIN_6)
 
 // 功率放大 不用
-#define  PA_TXD_OUT()            
-#define  PA_RXD_OUT()         
+#define  PA_TXD_OUT()
+#define  PA_RXD_OUT()
 
 static void  fn_send_byte(uint8 out);
 static uint8 fn_spi_read_byte(void);
@@ -46,6 +44,7 @@ static recv_data_callback recv_cb = NULL;
 static void fn_fqc_recv_data(uint8 *lpbuf, uint16 len);
 
 lpCtrlTypefunc_t  ctrlTypefunc = {
+   fn_init,
    fn_send_byte,
    fn_spi_read_byte,
    fn_cmd_switch_en,
@@ -56,6 +55,24 @@ lpCtrlTypefunc_t  ctrlTypefunc = {
 void sx1276_hal_recv_msg(void)
 {
     sx1278_recv_handle();
+}
+
+void sx1276_hal_init(void)
+{
+    SpiAttr hSpiAttr;
+    hSpiAttr.bitOrder = SpiBitOrder_MSBFirst;
+    hSpiAttr.speed    = SpiSpeed_10MHz;
+    hSpiAttr.mode     = SpiMode_Master;
+    hSpiAttr.subMode  = SpiSubMode_0;
+
+    // Init HSPI GPIO
+    WRITE_PERI_REG(PERIPHS_IO_MUX, 0x105);
+    PIN_FUNC_SELECT(PERIPHS_IO_MUX_MTDI_U, 2);//configure io to spi mode
+    PIN_FUNC_SELECT(PERIPHS_IO_MUX_MTCK_U, 2);//configure io to spi mode
+    PIN_FUNC_SELECT(PERIPHS_IO_MUX_MTMS_U, 2);//configure io to spi mode
+    PIN_FUNC_SELECT(PERIPHS_IO_MUX_MTDO_U, 2);//configure io to spi mode
+
+    SPIInit(SpiNum_HSPI, &hSpiAttr);
 }
 
 void sx1276_hal_set_recv_cb(recv_data_callback cb)
@@ -90,31 +107,52 @@ void sx1276_hal_lora_init(void)
 ////////////////////////////////////////////////////////////////////////////////
 // static function
 ////////////////////////////////////////////////////////////////////////////////
-static void fn_send_byte(uint8 out)
+static void fn_init(void)
 {
-    // spi_mast_byte_write(SPI, out);
-#if 0
-    uint8 i;
-    for (i = 0; i < 8; i++)
-    {
-        if (out & 0x80)           // check if MSB is high
-        {
-            RF_SDI_H;
-        }
-        else
-        {
-            RF_SDI_L;               // if not, set to low
-        }
-
-        RF_CKL_H;                   // toggle clock high
-        out = (out << 1);         // shift 1 place for next bit
-        RF_CKL_L;                   // toggle clock low
-    }
-#endif    
+    sx1276_hal_init();
 }
 
-static uint8 fn_spi_read_byte(void)
+static void fn_send_byte(uint8 addr, uint8 out)
 {
+    SpiData spi_data;
+
+    os_printf("\r\n =============   spi init master   ============= \r\n");
+
+//  Test 8266 slave.Communication format: 1byte command + 1bytes address + x bytes Data.
+    os_printf("\r\n Master send 1 bytes data to slave(sx1278)\r\n");
+
+    spiData.cmd     = MASTER_WRITE_DATA_TO_SLAVE_CMD;
+    spiData.cmdLen  = 1;
+    spiData.addr    = &addr;
+    spiData.addrLen = 1;
+    spiData.data    = out;
+    spiData.dataLen = 1;
+    SPIMasterSendData(SpiNum_HSPI, &spiData);
+
+    // spi_mast_byte_write(SPI, out);
+}
+
+static uint8 fn_spi_read_byte(uint8 addr)
+{
+    uint8 read_bytes;
+    os_printf("\r\n Master receive 24 bytes data from slave(8266)\r\n");
+    spiData.cmd = MASTER_READ_DATA_FROM_SLAVE_CMD;
+    spiData.cmdLen = 1;
+    spiData.addr   = &addr;
+    spiData.addrLen = 1;
+    spiData.data    = &read_bytes;
+    spiData.dataLen = 1;
+
+    SPIMasterRecvData(SpiNum_HSPI, &spiData);
+
+    os_printf("Recv Slave data0[0x%x]\r\n", read_bytes);
+
+    uint32 value = SPIMasterRecvStatus(SpiNum_HSPI);
+    os_printf("\r\n Master read slave(sx1278) status[0x%02x]\r\n", value);
+
+    SPIMasterSendStatus(SpiNum_HSPI, 0x99);
+    os_printf("\r\n Master write status[0x99] to slavue(8266).\r\n");
+    // SHOWSPIREG(SpiNum_HSPI);
 
 #if 0
     uint8 i, j;
@@ -133,7 +171,7 @@ static uint8 fn_spi_read_byte(void)
     }
 
     return j;                   // toggle clock low //
-#endif    
+#endif
 }
 
 static void fn_cmd_switch_en(CmdEntype_t cmd)
