@@ -31,10 +31,12 @@ static uint8   power_data[8] = {0x80, 0x80, 0x80, 0x83, 0x86, 0x89, 0x8c, 0x8f};
 //static double current_rssi[32];
 //static double pack_rssi[32];
 //static int    rece_count = 0;
-//
+
+
 static uint8  recv_buffer[16];
 static lpCtrlTypefunc_t lp_type_func = {0, 0, 0, 0, 0};
 
+static void delay_1s(uint32 ii);
 static void write_buffer(uint8 addr, uint8 buffer);
 static uint8 read_buffer(uint8 addr);
 static void lora_set_op_mode(RFMODE_SET opMode);
@@ -52,78 +54,19 @@ static void lora_set_payload_length(uint8 value);
 static void lora_set_mobile_node(boolean enable);
 static void rf_receive (void);
 
-void sx1276_delay_1s(uint32 ii)
+
+// sm1278 复位
+void sx1278_reset(void)
 {
-    uint8 j;
-    while(ii--)
-    {
-        for(j=0; j<100; j++);
-    }
-}
-
-void rx1276_rf_send_packet(uint8 *rf_tran_buf, uint8 len)
-{
-    uint8 i;
-
-    lp_type_func.paSwitchCmdfunc(TX_OPEN);
-    lora_set_op_mode(STDBY_MODE);
-    write_buffer(REG_LR_HOPPERIOD, 0);                   //
-    write_buffer(REG_LR_IRQFLAGSMASK, IRQN_TXD_Value);   //
-    write_buffer(REG_LR_PAYLOADLENGTH, len);             //
-    write_buffer(REG_LR_FIFOTXBASEADDR, 0);
-    write_buffer(REG_LR_FIFOADDRPTR, 0);
-
-    lp_type_func.lpSwitchEnStatus(EN_OPEN);
-    lp_type_func.lpByteWritefunc(0x80);
-
-    for (i = 0; i < len; i++)
-    {
-        lp_type_func.lpByteWritefunc(*rf_tran_buf);
-        rf_tran_buf++;
-    }
-
-    lp_type_func.lpSwitchEnStatus(EN_CLOSE);
-    write_buffer(REG_LR_DIOMAPPING1, 0x40);
-    write_buffer(REG_LR_DIOMAPPING2, 0x00);
-    lora_set_op_mode(TRANSMITTER_MODE);
-}
-
-void rx1276_register_rf_func(lpCtrlTypefunc_t *func)
-{
-    if (0 != func->lpHardwareInitfunc)
-    {
-        lp_type_func.lpHardwareInitfunc = func->lpHardwareInitfunc;
-    }
-
-    if (0 != func->lpByteWritefunc)
-    {
-        lp_type_func.lpByteWritefunc = func->lpByteWritefunc;
-    }
-
-    if (0 != func->lpByteReadfunc)
-    {
-        lp_type_func.lpByteReadfunc = func->lpByteReadfunc;
-    }
-
-    if (0 != func->lpSwitchEnStatus)
-    {
-        lp_type_func.lpSwitchEnStatus = func->lpSwitchEnStatus;
-    }
-
-    if (0 != func->paSwitchCmdfunc)
-    {
-        lp_type_func.paSwitchCmdfunc = func->paSwitchCmdfunc;
-    }
-
-    if (0 != func->lpRecvDataTousr)
-    {
-        lp_type_func.lpRecvDataTousr = func->lpRecvDataTousr;
-    }
+    gw_io_sx1278_rst_output(0);
+    delay_1s(20000);
+    gw_io_sx1278_rst_output(0);
+    delay_1s(5000);
 }
 
 void sx1276_lora_init(void)
 {
-    lp_type_func.lpHardwareInitfunc();
+    spi_init();
 
     lora_set_op_mode(SLEEP_MODE);
     lora_fsk(LORA_MODE);
@@ -141,6 +84,31 @@ void sx1276_lora_init(void)
     lora_set_symb_timeout(0x3FF);
     lora_set_mobile_node(TRUE);
     rf_receive();
+}
+
+
+
+void rx1278_send_packet(uint8 *buf, uint8 len)
+{
+    uint8 i;
+    
+    lora_set_op_mode(STDBY_MODE);
+    write_buffer(REG_LR_HOPPERIOD, 0);                   //
+    write_buffer(REG_LR_IRQFLAGSMASK, IRQN_TXD_Value);   //
+    write_buffer(REG_LR_PAYLOADLENGTH, len);             //
+    write_buffer(REG_LR_FIFOTXBASEADDR, 0);
+    write_buffer(REG_LR_FIFOADDRPTR, 0);
+
+    lp_type_func.lpByteWritefunc(0x80);
+    for (i = 0; i < len; i++)
+    {
+        lp_type_func.lpByteWritefunc(*rf_tran_buf);
+        rf_tran_buf++;
+    }
+
+    write_buffer(REG_LR_DIOMAPPING1, 0x40);
+    write_buffer(REG_LR_DIOMAPPING2, 0x00);
+    lora_set_op_mode(TRANSMITTER_MODE);
 }
 
 void sx1278_recv_handle(void)
@@ -239,14 +207,81 @@ void sx1278_recv_handle(void)
 ////////////////////////////////////////////////////////////////////////////////
 // static function.
 ////////////////////////////////////////////////////////////////////////////////
+static void spi_init(void)
+{
+    SpiAttr hSpiAttr;
+    hSpiAttr.bitOrder = SpiBitOrder_MSBFirst;
+    hSpiAttr.speed    = SpiSpeed_10MHz;
+    hSpiAttr.mode     = SpiMode_Master;
+    hSpiAttr.subMode  = SpiSubMode_0;
+
+    // Init HSPI GPIO
+    WRITE_PERI_REG(PERIPHS_IO_MUX, 0x105);
+    PIN_FUNC_SELECT(PERIPHS_IO_MUX_MTDI_U, 2);//configure io to spi mode
+    PIN_FUNC_SELECT(PERIPHS_IO_MUX_MTCK_U, 2);//configure io to spi mode
+    PIN_FUNC_SELECT(PERIPHS_IO_MUX_MTMS_U, 2);//configure io to spi mode
+    PIN_FUNC_SELECT(PERIPHS_IO_MUX_MTDO_U, 2);//configure io to spi mode
+
+    SPIInit(SpiNum_HSPI, &hSpiAttr);
+}
+
+static void spi_send_byte(uint8 addr, uint8 * out, uint8 len)
+{
+    SpiData spi_data;
+
+    os_printf("\r\n =============   spi init master   ============= \r\n");
+
+    // Communication format: 1byte command + 1bytes address + x bytes Data.
+    os_printf("\r\n Master send 1 bytes data to slave(sx1278)\r\n");
+
+    spiData.cmd     = MASTER_WRITE_DATA_TO_SLAVE_CMD;
+    spiData.cmdLen  = 1;
+    spiData.addr    = &addr;
+    spiData.addrLen = 1;
+    spiData.data    = out;
+    spiData.dataLen = 1;
+    SPIMasterSendData(SpiNum_HSPI, &spiData);
+
+    // spi_mast_byte_write(SPI, out);
+}
+
+static void delay_1s(uint32 ii)
+{
+    uint8 j;
+    while(ii--)
+    {
+        for(j=0; j<100; j++);
+    }
+}
+
+static uint8 fn_spi_read_byte(uint8 addr)
+{
+    uint8 read_bytes;
+    os_printf("\r\n Master receive 24 bytes data from slave(8266)\r\n");
+    spiData.cmd = MASTER_READ_DATA_FROM_SLAVE_CMD;
+    spiData.cmdLen = 1;
+    spiData.addr   = &addr;
+    spiData.addrLen = 1;
+    spiData.data    = &read_bytes;
+    spiData.dataLen = 1;
+
+    SPIMasterRecvData(SpiNum_HSPI, &spiData);
+
+    os_printf("Recv Slave data0[0x%x]\r\n", read_bytes);
+
+    uint32 value = SPIMasterRecvStatus(SpiNum_HSPI);
+    os_printf("\r\n Master read slave(sx1278) status[0x%02x]\r\n", value);
+
+    SPIMasterSendStatus(SpiNum_HSPI, 0x99);
+    os_printf("\r\n Master write status[0x99] to slavue(8266).\r\n");
+    // SHOWSPIREG(SpiNum_HSPI);
+}
+
+
 static void write_buffer(uint8 addr, uint8 buffer)
 {
-    lp_type_func.lpSwitchEnStatus(EN_OPEN);    // NSS = 0;
-
     lp_type_func.lpByteWritefunc(addr | 0x80, buffer);
     // lp_type_func.lpByteWritefunc(buffer);
-
-    lp_type_func.lpSwitchEnStatus(EN_CLOSE); // NSS = 1;
 }
 
 static uint8 read_buffer(uint8 addr)

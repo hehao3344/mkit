@@ -120,21 +120,13 @@ typedef enum
     TX_OPEN
 } CmdPaType_t;
 
-typedef struct
-{
-    void  (*lpHardwareInitfunc)(void);
-    void  (*lpByteWritefunc)(uint8 addr, uint8 src);
-    uint8 (*lpByteReadfunc)(uint8 addr);
-    void  (*lpSwitchEnStatus)(CmdEntype_t cmd);
-    void  (*paSwitchCmdfunc)(CmdPaType_t cmd);
-    void  (*lpRecvDataTousr)(uint8 *lpbuf, uint16 length );
-} lpCtrlTypefunc_t;
+typedef void (* recv_data_callback)(char *buffer, unsigned short length);
 
-void rx1276_register_rf_func(lpCtrlTypefunc_t *func);
-void sx1276_delay_1s(uint32 ii);
-void sx1276_lora_init(void);
+void sx1278_reset(void);
+void sx1278_lora_init(void);
+void rx1278_send_packet(uint8 *buf, uint8 len);
+void sx1278_set_recv_cb(recv_data_callback cb);
 void sx1278_recv_handle(void);
-void rx1276_rf_send_packet(uint8 *rf_tran_buf, uint8 len);
 
 #ifdef __cplusplus
 }
