@@ -1,5 +1,5 @@
-#include "../app/gw_io.h"
-#include "driver/spi_interface.h"
+#include "../apps/gw_io.h"
+// #include "driver/spi_interface.h"
 
 #include "sx1276.h"
 #include "sx1276_hal.h"
@@ -64,23 +64,18 @@ void sx1276_hal_rf_send_packet(uint8 *rf_tran_buf, uint8 len)
 ////////////////////////////////////////////////////////////////////////////////
 // static function
 ////////////////////////////////////////////////////////////////////////////////
-
-
-
-
-
 static void fn_cmd_switch_en(CmdEntype_t cmd)
 {
     switch(cmd)
     {
         case EN_OPEN:
         {
-            RF_CE_L;
+            //RF_CE_L;
         }
         break;
         case EN_CLOSE:
         {
-            RF_CE_H;
+            //RF_CE_H;
         }
         break;
         default:

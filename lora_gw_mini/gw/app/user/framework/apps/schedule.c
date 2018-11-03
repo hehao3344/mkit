@@ -20,10 +20,13 @@
 // #include "../tcp/tcp_client.h"
 #include "../tcp/tcp_server.h"
 #include "delay.h"
+#include "app_cc.h"
+#include "user_json.h"
 #include "user_plug.h"
 #include "schedule.h"
 
-#define MAX_DEV_COUNT   4
+#define MAX_SUB_DEV_COUNT 4
+#define MAX_DEV_COUNT     4
 
 typedef struct _DEV_PARAM
 {
@@ -293,7 +296,7 @@ static void ICACHE_FLASH_ATTR key_short_press( void )
         os_memset(handle->send_buf, 0, sizeof(handle->send_buf));
         os_sprintf(handle->send_buf, SET_MATCH_MSG, handle->dev_uuid[i], req_id, handle->sys_sec);
 
-        int out_len = sizeof(handle->tmp_buf));
+        int out_len = sizeof(handle->tmp_buf);
         
         if (0 == packet_enc(handle->send_buf, sizeof(handle->send_buf), handle->tmp_buf, &out_len))
         {  
@@ -331,7 +334,7 @@ LOCAL int ICACHE_FLASH_ATTR msg_parse(struct jsontree_context *js_ctx, struct js
 {
     int  type;
     char buffer[16] = {0};
-    APP_CC_OBJECT * handle = instance();
+    SCHEDULE_OBJECT * handle = instance();
     if (NULL == handle)
     {
         os_printf("invalid param \n");
@@ -414,6 +417,13 @@ JSONTREE_OBJECT(msg_tree, JSONTREE_PAIR("dev_uuid", NULL),
 static void ICACHE_FLASH_ATTR recv_data_fn(char *buffer, unsigned short len)
 {
     os_printf("recv from sx1278 [%s] len %d \n", buffer, len);
+    SCHEDULE_OBJECT * handle = instance();
+    if (NULL == handle)
+    {
+        os_printf("invalid param \n");
+        return;
+    }
+    
     if (len > 0)
     {
         crypto_api_decrypt_buffer(buffer, len);

@@ -12,6 +12,7 @@
 #include "osapi.h"
 #include "os_type.h"
 #include "mem.h"
+#include "gpio.h"
 #include "user_interface.h"
 #include "gw_io.h"
 
@@ -61,7 +62,8 @@ void ICACHE_FLASH_ATTR gw_io_sx1278_rst_output(uint8 on_off)
 void ICACHE_FLASH_ATTR gw_io_init( void )
 {
     PIN_FUNC_SELECT(GW_STATUS_IO_MUX, GW_STATUS_IO_FUNC);
-    PIN_FUNC_SELECT(GW_WIFI_IO_MUX,   GW_WIFI_IO_FUNC);
+    
+    (GW_WIFI_IO_MUX,   GW_WIFI_IO_FUNC);
 
     // 将管脚设置为GPIO口
     PIN_FUNC_SELECT(GW_SX1278_IRQ_IO_MUX, GW_SX1278_IRQ_IO_FUNC);
@@ -97,19 +99,18 @@ void ICACHE_FLASH_ATTR gw_io_init( void )
 ////////////////////////////////////////////////////////////////////////////////
 static void gpio_intr_handler()
 {
-　　 // 读取GPIO状态寄存器，获取中断信息
+    // 读取GPIO状态寄存器，获取中断信息
     uint32 gpio_status = GPIO_REG_READ(GPIO_STATUS_ADDRESS);
 
     // 关闭GPIO中断
     ETS_GPIO_INTR_DISABLE();
-
 
     // 清除中断信息
     GPIO_REG_WRITE(GPIO_STATUS_W1TC_ADDRESS, gpio_status);
 
     if (gpio_status & (BIT(5)))
     {
-　　　　
+    
     }
 
     // 开启GPIO中断

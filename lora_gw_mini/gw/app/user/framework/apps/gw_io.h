@@ -1,7 +1,10 @@
 #ifndef __HW_IO_H
 #define __HW_IO_H
 
-#include "../../../include/driver/key.h"
+#include "osapi.h"
+#include "os_type.h"
+
+//#include "../../../include/driver/key.h"
 
 // gpio0 key
 // gpio2 system status

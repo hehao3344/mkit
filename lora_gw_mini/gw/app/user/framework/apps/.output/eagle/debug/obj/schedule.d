@@ -30,6 +30,8 @@
  ../core/mem_mgr.h ../core/msc_list.h ../core/protocol.h \
  ../device/flash_param.h ../device/sx1276_hal.h ../device/../core/core.h \
  ../network/wifi.h ../network/../core/core.h ../network/discovery.h \
- ../crypto/crypto_api.h ../tcp/tcp_server.h delay.h ../core/core.h \
- user_plug.h ../../../include/driver/key.h ../../../../include/gpio.h \
- schedule.h
+ ../crypto/crypto_api.h ../crypto/packet.h ../tcp/tcp_server.h delay.h \
+ ../core/core.h app_cc.h ../../../include/user_json.h \
+ ../../../../include/json/jsonparse.h ../../../../include/json/json.h \
+ ../../../../include/json/jsontree.h user_plug.h \
+ ../../../include/driver/key.h ../../../../include/gpio.h schedule.h

@@ -18,10 +18,13 @@
  ../../../../include/os_type.h ../../../../include/ets_sys.h \
  ../../../../include/c_types.h ../../../../include/eagle_soc.h \
  ../core/core.h ../core/msc_list.h ../core/protocol.h \
- ../../../../include/user_interface.h ../../../../include/os_type.h \
- ../../../../include/ip_addr.h ../../../../include/queue.h \
- ../../../include/user_config.h ../../../../include/spi_flash.h \
- ../../../../include/ets_sys.h ../../../../include/osapi.h \
- ../../../../include/mem.h ../../../../include/espconn.h \
- ../../../../include/c_types.h ../core/platform.h ../core/version.h \
- ../device/flash_param.h tcp_client.h
+ ../../../../include/upgrade.h ../../../../include/user_interface.h \
+ ../../../../include/os_type.h ../../../../include/ip_addr.h \
+ ../../../../include/queue.h ../../../include/user_config.h \
+ ../../../../include/spi_flash.h ../../../../include/ets_sys.h \
+ ../../../../include/osapi.h ../../../../include/mem.h \
+ ../../../../include/espconn.h ../../../../include/c_types.h \
+ ../../../include/user_json.h ../../../../include/json/jsonparse.h \
+ ../../../../include/json/json.h ../../../../include/json/jsontree.h \
+ ../core/platform.h ../core/version.h ../device/flash_param.h \
+ tcp_client.h

@@ -1,4 +1,5 @@
 #include "sx1276.h"
+#include "driver/spi.h"
 
 static uint8   frequency[3] = { 0x6c, 0x80, 0x00 };
 //static uint8   spreading_factor = 11;   // 7-12
@@ -34,7 +35,7 @@ static uint8   power_data[8] = {0x80, 0x80, 0x80, 0x83, 0x86, 0x89, 0x8c, 0x8f};
 
 
 static uint8  recv_buffer[16];
-static lpCtrlTypefunc_t lp_type_func = {0, 0, 0, 0, 0};
+// static lpCtrlTypefunc_t lp_type_func = {0, 0, 0, 0, 0};
 
 static void delay_1s(uint32 ii);
 static void write_buffer(uint8 addr, uint8 buffer);
@@ -53,7 +54,7 @@ static void lora_set_symb_timeout(uint32 value);
 static void lora_set_payload_length(uint8 value);
 static void lora_set_mobile_node(boolean enable);
 static void rf_receive (void);
-
+static void spi_init(void);
 
 // sm1278 复位
 void sx1278_reset(void)
@@ -62,7 +63,7 @@ void sx1278_reset(void)
     delay_1s(20000);
     gw_io_sx1278_rst_output(0);
     delay_1s(5000);
-}
+}  
 
 void sx1276_lora_init(void)
 {
@@ -91,7 +92,8 @@ void sx1276_lora_init(void)
 void rx1278_send_packet(uint8 *buf, uint8 len)
 {
     uint8 i;
-    
+
+#if 0    
     lora_set_op_mode(STDBY_MODE);
     write_buffer(REG_LR_HOPPERIOD, 0);                   //
     write_buffer(REG_LR_IRQFLAGSMASK, IRQN_TXD_Value);   //
@@ -106,9 +108,11 @@ void rx1278_send_packet(uint8 *buf, uint8 len)
         rf_tran_buf++;
     }
 
+
     write_buffer(REG_LR_DIOMAPPING1, 0x40);
     write_buffer(REG_LR_DIOMAPPING2, 0x00);
     lora_set_op_mode(TRANSMITTER_MODE);
+#endif
 }
 
 void sx1278_recv_handle(void)
@@ -118,6 +122,7 @@ void sx1278_recv_handle(void)
     uint8 crc_value     = 0;
     uint8 sx1278_rlen   = 0;
 
+#if 0
     rf_ex0_status = read_buffer(REG_LR_IRQFLAGS);
     if (0x40 == (rf_ex0_status & 0x40))
     {
@@ -127,6 +132,8 @@ void sx1278_recv_handle(void)
         {
             write_buffer (REG_LR_FIFOADDRPTR, 0x00);
             sx1278_rlen = read_buffer(REG_LR_NBRXBYTES);
+            
+          
             lp_type_func.lpSwitchEnStatus(EN_OPEN);
             lp_type_func.lpByteWritefunc(0x00);
             for (i = 0; i < sx1278_rlen; i++)
@@ -200,6 +207,7 @@ void sx1278_recv_handle(void)
         lora_set_op_mode(RECEIVER_MODE);
         lp_type_func.paSwitchCmdfunc(RX_OPEN);
     }
+#endif
 
     write_buffer(REG_LR_IRQFLAGS, 0xff);
 }
@@ -209,6 +217,7 @@ void sx1278_recv_handle(void)
 ////////////////////////////////////////////////////////////////////////////////
 static void spi_init(void)
 {
+#if 0    
     SpiAttr hSpiAttr;
     hSpiAttr.bitOrder = SpiBitOrder_MSBFirst;
     hSpiAttr.speed    = SpiSpeed_10MHz;
@@ -223,10 +232,16 @@ static void spi_init(void)
     PIN_FUNC_SELECT(PERIPHS_IO_MUX_MTDO_U, 2);//configure io to spi mode
 
     SPIInit(SpiNum_HSPI, &hSpiAttr);
+#endif
+
+    spi_master_init(HSPI);
+    
 }
 
-static void spi_send_byte(uint8 addr, uint8 * out, uint8 len)
+static void spi_send_byte(uint8 addr, uint8 out)
 {
+    spi_byte_write_espslave(HSPI, out);
+#if 0    
     SpiData spi_data;
 
     os_printf("\r\n =============   spi init master   ============= \r\n");
@@ -241,7 +256,7 @@ static void spi_send_byte(uint8 addr, uint8 * out, uint8 len)
     spiData.data    = out;
     spiData.dataLen = 1;
     SPIMasterSendData(SpiNum_HSPI, &spiData);
-
+#endif
     // spi_mast_byte_write(SPI, out);
 }
 
@@ -256,6 +271,12 @@ static void delay_1s(uint32 ii)
 
 static uint8 fn_spi_read_byte(uint8 addr)
 {
+    uint8 read_data;
+    spi_byte_read_espslave(HSPI, &read_data);
+    
+    return read_data;
+    
+#if 0   
     uint8 read_bytes;
     os_printf("\r\n Master receive 24 bytes data from slave(8266)\r\n");
     spiData.cmd = MASTER_READ_DATA_FROM_SLAVE_CMD;
@@ -275,12 +296,15 @@ static uint8 fn_spi_read_byte(uint8 addr)
     SPIMasterSendStatus(SpiNum_HSPI, 0x99);
     os_printf("\r\n Master write status[0x99] to slavue(8266).\r\n");
     // SHOWSPIREG(SpiNum_HSPI);
+#endif
+    
 }
 
 
 static void write_buffer(uint8 addr, uint8 buffer)
 {
-    lp_type_func.lpByteWritefunc(addr | 0x80, buffer);
+    // lp_type_func.lpByteWritefunc(addr | 0x80, buffer);
+    
     // lp_type_func.lpByteWritefunc(buffer);
 }
 
@@ -288,11 +312,13 @@ static uint8 read_buffer(uint8 addr)
 {
     uint8 value;
 
-    lp_type_func.lpSwitchEnStatus(EN_OPEN);     // NSS = 0;
+    //lp_type_func.lpSwitchEnStatus(EN_OPEN);     // NSS = 0;
+    
     // lp_type_func.lpByteWritefunc(addr & 0x7f );
-    value = lp_type_func.lpByteReadfunc(addr & 0x7f);
+    
+    //value = lp_type_func.lpByteReadfunc(addr & 0x7f);
 
-    lp_type_func.lpSwitchEnStatus(EN_CLOSE);    // NSS = 1;
+    //lp_type_func.lpSwitchEnStatus(EN_CLOSE);    // NSS = 1;
 
     return value;
 }
@@ -414,5 +440,6 @@ static void rf_receive(void)
    write_buffer(REG_LR_DIOMAPPING1, 0x00);
    write_buffer(REG_LR_DIOMAPPING2, 0x00);
    lora_set_op_mode(RECEIVER_MODE);
-   lp_type_func.paSwitchCmdfunc(RX_OPEN);
+   
+   //lp_type_func.paSwitchCmdfunc(RX_OPEN);
 }

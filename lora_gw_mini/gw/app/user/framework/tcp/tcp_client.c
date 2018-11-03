@@ -11,17 +11,23 @@
 #include "espconn.h"
 #include "c_types.h"
 
+#include "user_json.h"
 #include "../core/platform.h"
 #include "../core/version.h"
 #include "../device/flash_param.h"
 #include "tcp_client.h"
+
+#define PACKET_SIZE (2*1024)
 
 typedef struct _TCP_CLIENT_OBJECT
 {
     int32   count;
     boolean proxy_is_handle;
     boolean proxy_connected;
-
+    
+    int  req_id;
+    
+    char cur_dev_uuid[16];
     int8 inform_buf[64];
     int8 mac[40];
 
@@ -50,7 +56,7 @@ LOCAL void ICACHE_FLASH_ATTR user_dns_check_cb(void *arg);
 LOCAL void ICACHE_FLASH_ATTR dns_to_ip_start(void);
 LOCAL void ICACHE_FLASH_ATTR user_esp_platform_upgrade_rsp(void *arg);
 LOCAL void ICACHE_FLASH_ATTR user_esp_platform_upgrade_begin(struct espconn *pespconn, struct upgrade_server_info *server);
-
+static void ICACHE_FLASH_ATTR recv_data_cb(void *arg, char *buffer, int length);
 
 #define HEAD_BUFFER "Connection: keep-alive\r\n\
 Cache-Control: no-cache\r\n\
@@ -381,7 +387,7 @@ LOCAL void ICACHE_FLASH_ATTR user_esp_platform_upgrade_rsp(void *arg)
     char *action = NULL;
     // os_memcpy(devkey, esp_param.devkey, 40);
 
-    pbuf = (char *)os_zalloc(packet_size);  // 2k
+    pbuf = (char *)os_zalloc(PACKET_SIZE);  // 2k
 
     if (server->upgrade_flag == true)
     {
@@ -483,9 +489,6 @@ LOCAL void ICACHE_FLASH_ATTR user_esp_platform_upgrade_begin(struct espconn *pes
         os_printf("upgrade is already started\n");
     }
 }
-#endif
-
-
 
 /***************************************************************************************************
 * static function.
@@ -532,8 +535,7 @@ LOCAL int ICACHE_FLASH_ATTR msg_parse(struct jsontree_context *js_ctx, struct js
 
                 if (0 == os_strcmp("fw_upgrade", buffer))
                 {
-
-                    user_esp_platform_upgrade_begin(struct espconn *pespconn, struct upgrade_server_info *server)
+                    //user_esp_platform_upgrade_begin(struct espconn *pespconn, struct upgrade_server_info *server)
                 }
 
             }
@@ -544,8 +546,10 @@ LOCAL int ICACHE_FLASH_ATTR msg_parse(struct jsontree_context *js_ctx, struct js
                 server = (struct upgrade_server_info *)os_zalloc(sizeof(struct upgrade_server_info));
                 os_memcpy(server->upgrade_version, "V2.00", 4);
                 server->upgrade_version[15] = '\0';
-                os_sprintf(server->pre_version,"%s%d.%d.%dt%d(%s)", VERSION_TYPE,IOT_VERSION_MAJOR,
-                    	     IOT_VERSION_MINOR, IOT_VERSION_REVISION, device_type, UPGRADE_FALG);
+                
+                //os_sprintf(server->pre_version,"%s%d.%d.%dt%d(%s)", VERSION_TYPE,IOT_VERSION_MAJOR,
+                //    	     IOT_VERSION_MINOR, IOT_VERSION_REVISION, device_type, UPGRADE_FALG);
+                
                 user_esp_platform_upgrade_begin(&handle->proxy_svr_conn, server);
             }
 
@@ -573,9 +577,9 @@ JSONTREE_OBJECT(msg_tree, JSONTREE_PAIR("dev_uuid", NULL),
                           JSONTREE_PAIR("req_id", NULL),
                           JSONTREE_PAIR("attr",  &msg_tree_sub));
 
-static void ICACHE_FLASH_ATTR recv_data_callback(void *arg, char *buffer, int length)
+static void ICACHE_FLASH_ATTR recv_data_cb(void *arg, char *buffer, int length)
 {
-    APP_CC_OBJECT * handle = (APP_CC_OBJECT *)arg;
+    TCP_CLIENT_OBJECT * handle = (TCP_CLIENT_OBJECT *)arg;
     if (NULL == handle)
     {
         os_printf("invalid param \n");
