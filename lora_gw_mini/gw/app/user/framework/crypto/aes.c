@@ -171,14 +171,14 @@ static void KeyExpansion(uint8_t* RoundKey, const uint8_t* Key)
             tempa[0]=RoundKey[k + 0];
             tempa[1]=RoundKey[k + 1];
             tempa[2]=RoundKey[k + 2];
-            tempa[3]=RoundKey[k + 3];        
+            tempa[3]=RoundKey[k + 3];
         }
-        
+
         if (i % Nk == 0)
         {
             // This function shifts the 4 bytes in a word to the left once.
             // [a0,a1,a2,a3] becomes [a1,a2,a3,a0]
-            
+
             // Function RotWord()
             {
                 k = tempa[0];
@@ -187,10 +187,10 @@ static void KeyExpansion(uint8_t* RoundKey, const uint8_t* Key)
                 tempa[2] = tempa[3];
                 tempa[3] = k;
             }
-        
+
             // SubWord() is a function that takes a four-byte input word and
             // applies the S-box to each of the four bytes to produce an output word.
-            
+
             // Function Subword()
             {
                 tempa[0] = getSBoxValue(tempa[0]);
@@ -198,7 +198,7 @@ static void KeyExpansion(uint8_t* RoundKey, const uint8_t* Key)
                 tempa[2] = getSBoxValue(tempa[2]);
                 tempa[3] = getSBoxValue(tempa[3]);
             }
-        
+
             tempa[0] = tempa[0] ^ Rcon[i/Nk];
         }
         #if defined(AES256) && (AES256 == 1)
@@ -213,7 +213,7 @@ static void KeyExpansion(uint8_t* RoundKey, const uint8_t* Key)
             }
         }
         #endif
-        
+
         j = i * 4; k=(i - Nk) * 4;
         RoundKey[j + 0] = RoundKey[k + 0] ^ tempa[0];
         RoundKey[j + 1] = RoundKey[k + 1] ^ tempa[1];
@@ -273,23 +273,23 @@ static void SubBytes(state_t* state)
 static void ShiftRows(state_t* state)
 {
     uint8_t temp;
-    
+
     // Rotate first row 1 columns to left
     temp           = (*state)[0][1];
     (*state)[0][1] = (*state)[1][1];
     (*state)[1][1] = (*state)[2][1];
     (*state)[2][1] = (*state)[3][1];
     (*state)[3][1] = temp;
-    
+
     // Rotate second row 2 columns to left
     temp           = (*state)[0][2];
     (*state)[0][2] = (*state)[2][2];
     (*state)[2][2] = temp;
-    
+
     temp           = (*state)[1][2];
     (*state)[1][2] = (*state)[3][2];
     (*state)[3][2] = temp;
-    
+
     // Rotate third row 3 columns to left
     temp           = (*state)[0][3];
     (*state)[0][3] = (*state)[3][3];
@@ -355,7 +355,7 @@ static void InvMixColumns(state_t* state)
         b = (*state)[i][1];
         c = (*state)[i][2];
         d = (*state)[i][3];
-        
+
         (*state)[i][0] = Multiply(a, 0x0e) ^ Multiply(b, 0x0b) ^ Multiply(c, 0x0d) ^ Multiply(d, 0x09);
         (*state)[i][1] = Multiply(a, 0x09) ^ Multiply(b, 0x0e) ^ Multiply(c, 0x0b) ^ Multiply(d, 0x0d);
         (*state)[i][2] = Multiply(a, 0x0d) ^ Multiply(b, 0x09) ^ Multiply(c, 0x0e) ^ Multiply(d, 0x0b);
@@ -381,23 +381,23 @@ static void InvSubBytes(state_t* state)
 static void InvShiftRows(state_t* state)
 {
     uint8_t temp;
-    
+
     // Rotate first row 1 columns to right
     temp = (*state)[3][1];
     (*state)[3][1] = (*state)[2][1];
     (*state)[2][1] = (*state)[1][1];
     (*state)[1][1] = (*state)[0][1];
     (*state)[0][1] = temp;
-    
+
     // Rotate second row 2 columns to right
     temp = (*state)[0][2];
     (*state)[0][2] = (*state)[2][2];
     (*state)[2][2] = temp;
-    
+
     temp = (*state)[1][2];
     (*state)[1][2] = (*state)[3][2];
     (*state)[3][2] = temp;
-    
+
     // Rotate third row 3 columns to right
     temp = (*state)[0][3];
     (*state)[0][3] = (*state)[1][3];
@@ -410,10 +410,10 @@ static void InvShiftRows(state_t* state)
 static void Cipher(state_t* state, uint8_t* RoundKey)
 {
     uint8_t round = 0;
-    
+
     // Add the First round key to the state before starting the rounds.
     AddRoundKey(0, state, RoundKey);
-    
+
     // There will be Nr rounds.
     // The first Nr-1 rounds are identical.
     // These Nr-1 rounds are executed in the loop below.
@@ -424,7 +424,7 @@ static void Cipher(state_t* state, uint8_t* RoundKey)
         MixColumns(state);
         AddRoundKey(round, state, RoundKey);
     }
-    
+
     // The last round is given below.
     // The MixColumns function is not here in the last round.
     SubBytes(state);
@@ -435,10 +435,10 @@ static void Cipher(state_t* state, uint8_t* RoundKey)
 static void InvCipher(state_t* state,uint8_t* RoundKey)
 {
     uint8_t round = 0;
-    
+
     // Add the First round key to the state before starting the rounds.
     AddRoundKey(Nr, state, RoundKey);
-    
+
     // There will be Nr rounds.
     // The first Nr-1 rounds are identical.
     // These Nr-1 rounds are executed in the loop below.
@@ -449,7 +449,7 @@ static void InvCipher(state_t* state,uint8_t* RoundKey)
         AddRoundKey(round, state, RoundKey);
         InvMixColumns(state);
     }
-    
+
     // The last round is given below.
     // The MixColumns function is not here in the last round.
     InvShiftRows(state);
@@ -522,16 +522,16 @@ void AES_CBC_decrypt_buffer(struct AES_ctx* ctx, uint8_t* buf,  uint32_t length)
 void AES_CTR_xcrypt_buffer(struct AES_ctx* ctx, uint8_t* buf, uint32_t length)
 {
     uint8_t buffer[AES_BLOCKLEN];
-    
+
     unsigned i;
     int bi;
     for (i = 0, bi = AES_BLOCKLEN; i < length; ++i, ++bi)
     {
         if (bi == AES_BLOCKLEN) /* we need to regen xor compliment in buffer */
-        {        
+        {
             memcpy(buffer, ctx->Iv, AES_BLOCKLEN);
             Cipher((state_t*)buffer,ctx->RoundKey);
-            
+
             /* Increment Iv and handle overflow */
             for (bi = (AES_BLOCKLEN - 1); bi >= 0; --bi)
             {
@@ -546,7 +546,7 @@ void AES_CTR_xcrypt_buffer(struct AES_ctx* ctx, uint8_t* buf, uint32_t length)
             }
             bi = 0;
         }
-        
+
         buf[i] = (buf[i] ^ buffer[bi]);
     }
 }

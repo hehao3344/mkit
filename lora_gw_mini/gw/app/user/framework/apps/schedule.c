@@ -10,27 +10,29 @@
 #include "espconn.h"
 #include "driver/uart.h"
 #include "user_json.h"
+#include "gw_io.h"
 
 #include "../core/mem_mgr.h"
 #include "../device/flash_param.h"
-#include "../device/sx1276_hal.h"
+#include "../device/sx1276.h"
 #include "../network/wifi.h"
 #include "../network/discovery.h"
 #include "../crypto/crypto_api.h"
 #include "../crypto/packet.h"
 #include "../tcp/tcp_server.h"
 #include "delay.h"
-#include "user_plug.h"
 #include "schedule.h"
 
 #define MAX_DEV_COUNT   4
+#define DEV_UUID_LEN    16 /* */
+
 
 typedef struct _DEV_PARAM
 {
-    char dev_uuid[16];
+    char dev_uuid[DEV_UUID_LEN];
     int  status;        /* online-1 offline-0 */
     int  on_off;        /* on-1 off-0 */
-    int  alive_sec;     /* 发送心跳包到现在的秒数 */
+    int  alive_sec;     /* */
 } DEV_PARAM;
 
 typedef struct _SCHEDULE_OBJECT
@@ -39,9 +41,9 @@ typedef struct _SCHEDULE_OBJECT
     uint32     sys_sec;
     os_timer_t sys_timer;
 
-    int8 mac[40];
+    int8 mac[16];
 
-    char cur_dev_uuid[16];
+    char cur_dev_uuid[DEV_UUID_LEN];
     DEV_PARAM dev_param[MAX_DEV_COUNT];
 
     char dev_uuid[MAX_DEV_COUNT][16];
@@ -49,6 +51,7 @@ typedef struct _SCHEDULE_OBJECT
     // 3 secs off - 100 ms on - ok
     // 100 ms off - 100 ms on - auth failed.
     os_timer_t net_led_timer;
+
     uint8 net_led_status;
     uint8 net_led_status_count;
     uint8 net_wifi_status;          // 0 auth failed, 1 success.
@@ -57,7 +60,7 @@ typedef struct _SCHEDULE_OBJECT
 
     char send_buf[256];
     char tmp_buf[264];
-    
+
     // key press.
     struct keys_param keys;
     struct single_key_param *single_key[PLUG_KEY_NUM];
@@ -73,22 +76,80 @@ static void ICACHE_FLASH_ATTR key_short_press(void);
 static void ICACHE_FLASH_ATTR tcp_recv_data_callback(void *arg, char *buffer, unsigned short length);
 static void ICACHE_FLASH_ATTR recv_data_fn(char *buffer, unsigned short len);
 
+
+
+
+
+
+
+#include "driver/spi_interface.h"
+// Show the spi registers.
+#define SHOWSPIREG(i) __ShowRegValue(__func__, __LINE__);
+
+/**
+ * @brief Print debug information.
+ *
+ */
+void __ShowRegValue(const char * func, uint32_t line)
+{
+
+    int i;
+    uint32_t regAddr = 0x60000140; // SPI--0x60000240, HSPI--0x60000140;
+    os_printf("\r\n FUNC[%s],line[%d]\r\n", func, line);
+    os_printf(" SPI_ADDR      [0x%08x]\r\n", READ_PERI_REG(SPI_ADDR(SpiNum_HSPI)));
+    os_printf(" SPI_CMD       [0x%08x]\r\n", READ_PERI_REG(SPI_CMD(SpiNum_HSPI)));
+    os_printf(" SPI_CTRL      [0x%08x]\r\n", READ_PERI_REG(SPI_CTRL(SpiNum_HSPI)));
+    os_printf(" SPI_CTRL2     [0x%08x]\r\n", READ_PERI_REG(SPI_CTRL2(SpiNum_HSPI)));
+    os_printf(" SPI_CLOCK     [0x%08x]\r\n", READ_PERI_REG(SPI_CLOCK(SpiNum_HSPI)));
+    os_printf(" SPI_RD_STATUS [0x%08x]\r\n", READ_PERI_REG(SPI_RD_STATUS(SpiNum_HSPI)));
+    os_printf(" SPI_WR_STATUS [0x%08x]\r\n", READ_PERI_REG(SPI_WR_STATUS(SpiNum_HSPI)));
+    os_printf(" SPI_USER      [0x%08x]\r\n", READ_PERI_REG(SPI_USER(SpiNum_HSPI)));
+    os_printf(" SPI_USER1     [0x%08x]\r\n", READ_PERI_REG(SPI_USER1(SpiNum_HSPI)));
+    os_printf(" SPI_USER2     [0x%08x]\r\n", READ_PERI_REG(SPI_USER2(SpiNum_HSPI)));
+    os_printf(" SPI_PIN       [0x%08x]\r\n", READ_PERI_REG(SPI_PIN(SpiNum_HSPI)));
+    os_printf(" SPI_SLAVE     [0x%08x]\r\n", READ_PERI_REG(SPI_SLAVE(SpiNum_HSPI)));
+    os_printf(" SPI_SLAVE1    [0x%08x]\r\n", READ_PERI_REG(SPI_SLAVE1(SpiNum_HSPI)));
+    os_printf(" SPI_SLAVE2    [0x%08x]\r\n", READ_PERI_REG(SPI_SLAVE2(SpiNum_HSPI)));
+
+    for (i = 0; i < 16; ++i) {
+        os_printf(" ADDR[0x%08x],Value[0x%08x]\r\n", regAddr, READ_PERI_REG(regAddr));
+        regAddr += 4;
+    }
+
+}
+
+
+
+
+
 boolean ICACHE_FLASH_ATTR schedule_create(uint16 smart_config)
 {
     SCHEDULE_OBJECT * handle = instance();
 
     gw_io_init();
-    
-    gw_io_status_output(1);
 
-    handle->single_key[0] = key_init_single(PLUG_KEY_0_IO_NUM,
-                                            PLUG_KEY_0_IO_MUX,
-                                            PLUG_KEY_0_IO_FUNC,
+
+     __ShowRegValue("ABC", 100);
+
+    // gw_io_status_output(1);
+
+    handle->single_key[0] = key_init_single(GW_KEY_0_IO_NUM,
+                                            GW_KEY_0_IO_MUX,
+                                            GW_KEY_0_IO_FUNC,
                                             key_long_press,
                                             key_short_press);
     handle->keys.key_num    = PLUG_KEY_NUM;
     handle->keys.single_key = handle->single_key;
     key_init(&handle->keys);
+
+    gw_io_sx1278_rst_output(1);
+
+    os_printf("finish config .... \n");
+
+    sx1278_reset();
+
+    sx1276_lora_init();
+
 
     int i;
     for (i=0; i<MAX_DEV_COUNT; i++)
@@ -96,14 +157,15 @@ boolean ICACHE_FLASH_ATTR schedule_create(uint16 smart_config)
         os_memset(handle->dev_param[i].dev_uuid, 0, sizeof(handle->dev_param[i].dev_uuid));
         flash_param_get_dev_uuid(i, handle->dev_param[i].dev_uuid, sizeof(handle->dev_param[i].dev_uuid));
     }
-    
+
     crypto_api_cbc_set_key(KEY_PASSWORD, strlen(KEY_PASSWORD));
     sx1276_hal_set_recv_cb(recv_data_fn);
 
     os_timer_disarm(&handle->sys_timer);
     os_timer_setfn(&handle->sys_timer, (os_timer_func_t *)system_timer_center, handle);
-    os_timer_arm(&handle->sys_timer, 1000, 1); // 0 at once, 1 restart auto.
+    os_timer_arm(&handle->sys_timer, 3000, 1); // 0 at once, 1 restart auto.
 
+    return 0;
 #if 0
     os_timer_disarm(&handle->net_led_timer);
     os_timer_setfn(&handle->net_led_timer, (os_timer_func_t *)net_led_center, handle);
@@ -132,7 +194,7 @@ boolean ICACHE_FLASH_ATTR schedule_create(uint16 smart_config)
     DISCOVER_ENV dis_env;
     dis_env.port = TCP_BIND_PORT;
     os_memset(&dis_env, 0, sizeof(DISCOVER_ENV));
-    os_sprintf(dis_env.dev_uuid, "01%s", handle->mac); /* 01表示中控 */
+    os_sprintf(dis_env.dev_uuid, "01%s", handle->mac); /* 01琛ㄧず涓帶 */
     if (0 != discovery_create(&dis_env))
     {
         os_printf("dis failed \n");
@@ -198,28 +260,40 @@ static void system_timer_center( void *arg )
 {
     SCHEDULE_OBJECT * handle = ( SCHEDULE_OBJECT * )arg;
 
+    // os_printf("get count %d \n", handle->sys_sec);
+    handle->sys_sec++;
+
+    static int flags = 0;
+
+    gw_io_wifi_output(flags);
+
+    flags = (0 == flags) ? 1 : 0;
+
+    char buffer[8] = {0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x02};
+    sx1278_send_packet(buffer, sizeof(buffer));
+
+    return;
+
+
     if (0 == handle->sys_sec++ % 60)
     {
         int i;
         int req_id = (int)rand();
         for (i=0; i<MAX_DEV_COUNT; i++)
         {
-            /* 每隔XX秒同步一次时间 */
             os_memset(handle->send_buf, 0, sizeof(handle->send_buf));
             os_sprintf(handle->send_buf, SYNC_TIME, handle->dev_param[i].dev_uuid, req_id, handle->sys_sec);
-            
-            int out_len = sizeof(handle->tmp_buf);            
+
+            int out_len = sizeof(handle->tmp_buf);
             if (0 == packet_enc(handle->send_buf, strlen(handle->send_buf), handle->tmp_buf, &out_len))
-            {           
+            {
                 crypto_api_encrypt_buffer(handle->tmp_buf, out_len);
-                /* 发送到子设备 */
-                /* 子设备根据地址去做匹配 */
                 sx1276_hal_rf_send_packet(handle->tmp_buf, (unsigned char)out_len);
             }
-             
+
             if (handle->dev_param[i].alive_sec++ > 120)
             {
-                /* 开关状态-1 未知 */
+                /* 寮�鍏崇姸鎬�-1 鏈煡 */
                 app_cc_set_param(handle->dev_param[i].dev_uuid, 0, -1);
             }
         }
@@ -289,23 +363,37 @@ static void net_led_center(void *arg)
 
 static void ICACHE_FLASH_ATTR key_short_press( void )
 {
-    return ;
-    SCHEDULE_OBJECT * handle = instance();
     int i;
+    SCHEDULE_OBJECT * handle = instance();
+    if (NULL == handle)
+    {
+        os_printf("invalid param (not enough memory) \n");
+        return;
+    }
+
+    os_printf("shoart press \n");
+
+    static int flags = 0;
+
+    gw_io_status_output(flags);
+
+    flags = (0 == flags) ? 1 : 0;
+
+    return;
+
     int req_id = (int)rand();
     for (i=0; i<MAX_DEV_COUNT; i++)
     {
-        /* 每隔XX秒同步一次时间 */
         os_memset(handle->send_buf, 0, sizeof(handle->send_buf));
         os_sprintf(handle->send_buf, SET_MATCH_MSG, handle->dev_uuid[i], req_id, handle->sys_sec);
 
         int out_len = sizeof(handle->tmp_buf);
-        
+
         if (0 == packet_enc(handle->send_buf, sizeof(handle->send_buf), handle->tmp_buf, &out_len))
-        {  
+        {
             crypto_api_encrypt_buffer(handle->tmp_buf, out_len);
-            
-            /* 发送到子设备 */
+
+            /* 鍙戦�佸埌瀛愯澶� */
             sx1276_hal_rf_send_packet(handle->tmp_buf, (unsigned char)out_len);
         }
     }
@@ -325,8 +413,8 @@ static void ICACHE_FLASH_ATTR key_long_press( void )
     //user_esp_platform_set_active(0);
     //flash_param_set_id(CONFIG_RESET_ID);
 
-    system_restore();
-    system_restart();
+    //system_restore();
+    //system_restart();
 }
 
 
@@ -420,26 +508,25 @@ JSONTREE_OBJECT(msg_tree, JSONTREE_PAIR("dev_uuid", NULL),
 static void ICACHE_FLASH_ATTR recv_data_fn(char *buffer, unsigned short len)
 {
     os_printf("recv from sx1278 [%s] len %d \n", buffer, len);
-    
+
     SCHEDULE_OBJECT * handle = instance();
     if (NULL == handle)
     {
         os_printf("invalid param \n");
         return;
-    }    
+    }
     if (len > 0)
     {
         crypto_api_decrypt_buffer(buffer, len);
-        
-        int out_len = sizeof(handle->tmp_buf);        
+
+        int out_len = sizeof(handle->tmp_buf);
         if (0 == packet_dec(buffer, len, handle->tmp_buf, &out_len))
-        {          
+        {
             os_printf("get data from 1278 is %s \n", handle->tmp_buf);
             struct jsontree_context js;
             jsontree_setup(&js, (struct jsontree_value *)&msg_tree, json_putchar);
             json_parse(&js, handle->tmp_buf);
 
-            /* 解析包 并更新状态 */
             tcp_server_send_msg(handle->tmp_buf, (int)out_len);
         }
     }

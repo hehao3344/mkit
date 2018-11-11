@@ -5,6 +5,9 @@
 #include "driver/spi.h"
 #include "sx1276.h"
 
+#include "driver/spi_interface.h"
+
+
 static uint8   frequency[3] = { 0x6c, 0x80, 0x00 };
 //static uint8   spreading_factor = 11;   // 7-12
 
@@ -59,15 +62,17 @@ static void lora_set_payload_length(uint8 value);
 static void lora_set_mobile_node(boolean enable);
 static void rf_receive (void);
 static void spi_init(void);
+static void spi_send_byte(char data);
+static uint8 spi_read_byte();
 
 // sm1278 复位
 void sx1278_reset(void)
 {
     gw_io_sx1278_rst_output(0);
     delay_1s(20000);
-    gw_io_sx1278_rst_output(0);
+    gw_io_sx1278_rst_output(1);
     delay_1s(5000);
-}  
+}
 
 void sx1276_lora_init(void)
 {
@@ -91,13 +96,10 @@ void sx1276_lora_init(void)
     rf_receive();
 }
 
-
-
-void rx1278_send_packet(uint8 *buf, uint8 len)
+void sx1278_send_packet(uint8 *buf, uint8 len)
 {
     uint8 i;
 
-#if 0    
     lora_set_op_mode(STDBY_MODE);
     write_buffer(REG_LR_HOPPERIOD, 0);                   //
     write_buffer(REG_LR_IRQFLAGSMASK, IRQN_TXD_Value);   //
@@ -105,18 +107,16 @@ void rx1278_send_packet(uint8 *buf, uint8 len)
     write_buffer(REG_LR_FIFOTXBASEADDR, 0);
     write_buffer(REG_LR_FIFOADDRPTR, 0);
 
-    lp_type_func.lpByteWritefunc(0x80);
+    spi_send_byte(0x80);
     for (i = 0; i < len; i++)
     {
-        lp_type_func.lpByteWritefunc(*rf_tran_buf);
-        rf_tran_buf++;
+        spi_send_byte(*buf);
+        buf++;
     }
-
 
     write_buffer(REG_LR_DIOMAPPING1, 0x40);
     write_buffer(REG_LR_DIOMAPPING2, 0x00);
     lora_set_op_mode(TRANSMITTER_MODE);
-#endif
 }
 
 void sx1278_recv_handle(void)
@@ -126,7 +126,6 @@ void sx1278_recv_handle(void)
     uint8 crc_value     = 0;
     uint8 sx1278_rlen   = 0;
 
-#if 0
     rf_ex0_status = read_buffer(REG_LR_IRQFLAGS);
     if (0x40 == (rf_ex0_status & 0x40))
     {
@@ -136,21 +135,20 @@ void sx1278_recv_handle(void)
         {
             write_buffer (REG_LR_FIFOADDRPTR, 0x00);
             sx1278_rlen = read_buffer(REG_LR_NBRXBYTES);
-            
-          
-            lp_type_func.lpSwitchEnStatus(EN_OPEN);
-            lp_type_func.lpByteWritefunc(0x00);
+
+            // lp_type_func.lpSwitchEnStatus(EN_OPEN);
+            //lp_type_func.lpByteWritefunc(0x00);
+            spi_send_byte(0x00);
             for (i = 0; i < sx1278_rlen; i++)
             {
                 if (i < sizeof(recv_buffer))
                 {
-                    recv_buffer[i] = lp_type_func.lpByteReadfunc();
+                    recv_buffer[i] = spi_read_byte();
+                    //recv_buffer[i] = lp_type_func.lpByteReadfunc();
                 }
             }
-            lp_type_func.lpSwitchEnStatus(EN_CLOSE);
         }
 
-        lp_type_func.lpRecvDataTousr(recv_buffer, sx1278_rlen);
 
 #if 0
         // test add for rev rssi --- Received Signal Strength Indication
@@ -167,7 +165,6 @@ void sx1278_recv_handle(void)
         write_buffer(REG_LR_DIOMAPPING1, 0X00);
         write_buffer(REG_LR_DIOMAPPING2, 0x00);
         lora_set_op_mode(RECEIVER_MODE);
-        lp_type_func.paSwitchCmdfunc(RX_OPEN);
     }
     else if (0x08 == (rf_ex0_status & 0x08))
     {
@@ -177,7 +174,6 @@ void sx1278_recv_handle(void)
         write_buffer(REG_LR_DIOMAPPING1, 0X00);
         write_buffer(REG_LR_DIOMAPPING2, 0x00);
         lora_set_op_mode(RECEIVER_MODE);
-        lp_type_func.paSwitchCmdfunc(RX_OPEN);
     }
     else if(0x04 == (rf_ex0_status & 0x04))
     {
@@ -189,7 +185,6 @@ void sx1278_recv_handle(void)
             write_buffer(REG_LR_DIOMAPPING1, 0X02);
             write_buffer(REG_LR_DIOMAPPING2, 0x00);
             lora_set_op_mode(RECEIVER_MODE);
-            lp_type_func.paSwitchCmdfunc(RX_OPEN);
         }
         else
         {
@@ -198,7 +193,6 @@ void sx1278_recv_handle(void)
             write_buffer(REG_LR_DIOMAPPING1, 0x00);
             write_buffer(REG_LR_DIOMAPPING2, 0x00);
             lora_set_op_mode(SLEEP_MODE);
-            //PA_SEELP_OUT();
         }
     }
     else
@@ -209,9 +203,7 @@ void sx1278_recv_handle(void)
         write_buffer(REG_LR_DIOMAPPING1, 0X02);
         write_buffer(REG_LR_DIOMAPPING2, 0x00);
         lora_set_op_mode(RECEIVER_MODE);
-        lp_type_func.paSwitchCmdfunc(RX_OPEN);
     }
-#endif
 
     write_buffer(REG_LR_IRQFLAGS, 0xff);
 }
@@ -221,10 +213,9 @@ void sx1278_recv_handle(void)
 ////////////////////////////////////////////////////////////////////////////////
 static void spi_init(void)
 {
-#if 0    
     SpiAttr hSpiAttr;
     hSpiAttr.bitOrder = SpiBitOrder_MSBFirst;
-    hSpiAttr.speed    = SpiSpeed_10MHz;
+    hSpiAttr.speed    = SpiSpeed_1MHz;
     hSpiAttr.mode     = SpiMode_Master;
     hSpiAttr.subMode  = SpiSubMode_0;
 
@@ -234,35 +225,43 @@ static void spi_init(void)
     PIN_FUNC_SELECT(PERIPHS_IO_MUX_MTCK_U, 2);//configure io to spi mode
     PIN_FUNC_SELECT(PERIPHS_IO_MUX_MTMS_U, 2);//configure io to spi mode
     PIN_FUNC_SELECT(PERIPHS_IO_MUX_MTDO_U, 2);//configure io to spi mode
-
     SPIInit(SpiNum_HSPI, &hSpiAttr);
-#endif
 
-    spi_master_init(HSPI);
-    
+    // spi_master_init(HSPI);
 }
 
-static void spi_send_byte(uint8 addr, uint8 out)
+static void spi_send_byte(char data)
 {
-    spi_byte_write_espslave(HSPI, out);
-#if 0    
-    SpiData spi_data;
 
-    os_printf("\r\n =============   spi init master   ============= \r\n");
+    uint32_t sendData[1] ={ 0 };
+    SpiData spiData;
 
-    // Communication format: 1byte command + 1bytes address + x bytes Data.
-    os_printf("\r\n Master send 1 bytes data to slave(sx1278)\r\n");
+    //os_printf("\r\n =============   spi init master   ============= \r\n");
 
-    spiData.cmd     = MASTER_WRITE_DATA_TO_SLAVE_CMD;
-    spiData.cmdLen  = 1;
-    spiData.addr    = &addr;
-    spiData.addrLen = 1;
-    spiData.data    = out;
-    spiData.dataLen = 1;
+    //Test 8266 slave.Communication format: 1byte command + 1bytes address + x bytes Data.
+    // os_printf("\r\n Master send 32 bytes data to slave(8266)\r\n");
+    os_memset(sendData, 0, sizeof(sendData));
+    sendData[0] = data;
+    spiData.cmd = MASTER_WRITE_DATA_TO_SLAVE_CMD;
+    spiData.cmdLen = 1;
+    spiData.addr = &value;
+    spiData.addrLen = 4;
+    spiData.data = sendData;
+    spiData.dataLen = 4;
     SPIMasterSendData(SpiNum_HSPI, &spiData);
-#endif
-    // spi_mast_byte_write(SPI, out);
+
+
+    //spi_mast_byte_write(HSPI, data);
 }
+
+static uint8 spi_read_byte(void)
+{
+    uint8 read_data;
+    spi_byte_read_espslave(HSPI, &read_data);
+
+    return read_data;
+}
+
 
 static void delay_1s(uint32 ii)
 {
@@ -273,56 +272,18 @@ static void delay_1s(uint32 ii)
     }
 }
 
-static uint8 fn_spi_read_byte(uint8 addr)
-{
-    uint8 read_data;
-    spi_byte_read_espslave(HSPI, &read_data);
-    
-    return read_data;
-    
-#if 0   
-    uint8 read_bytes;
-    os_printf("\r\n Master receive 24 bytes data from slave(8266)\r\n");
-    spiData.cmd = MASTER_READ_DATA_FROM_SLAVE_CMD;
-    spiData.cmdLen = 1;
-    spiData.addr   = &addr;
-    spiData.addrLen = 1;
-    spiData.data    = &read_bytes;
-    spiData.dataLen = 1;
-
-    SPIMasterRecvData(SpiNum_HSPI, &spiData);
-
-    os_printf("Recv Slave data0[0x%x]\r\n", read_bytes);
-
-    uint32 value = SPIMasterRecvStatus(SpiNum_HSPI);
-    os_printf("\r\n Master read slave(sx1278) status[0x%02x]\r\n", value);
-
-    SPIMasterSendStatus(SpiNum_HSPI, 0x99);
-    os_printf("\r\n Master write status[0x99] to slavue(8266).\r\n");
-    // SHOWSPIREG(SpiNum_HSPI);
-#endif
-    
-}
-
-
 static void write_buffer(uint8 addr, uint8 buffer)
 {
-    // lp_type_func.lpByteWritefunc(addr | 0x80, buffer);
-    
-    // lp_type_func.lpByteWritefunc(buffer);
+    spi_send_byte(addr|0x80);
+    spi_send_byte(buffer);
 }
 
 static uint8 read_buffer(uint8 addr)
 {
     uint8 value;
 
-    //lp_type_func.lpSwitchEnStatus(EN_OPEN);     // NSS = 0;
-    
-    // lp_type_func.lpByteWritefunc(addr & 0x7f );
-    
-    //value = lp_type_func.lpByteReadfunc(addr & 0x7f);
-
-    //lp_type_func.lpSwitchEnStatus(EN_CLOSE);    // NSS = 1;
+    spi_send_byte(addr&0x7f);
+    spi_byte_read_espslave(HSPI, &value);
 
     return value;
 }
@@ -386,41 +347,41 @@ static void lora_set_error_coding(uint8 value)
 
 static void lora_set_packet_crc_on(boolean enable)
 {
-   uint8 recv_data;
-   recv_data = read_buffer(REG_LR_MODEMCONFIG2);
-   recv_data = (recv_data & RFLR_MODEMCONFIG2_RXPAYLOADCRC_MASK) | (enable << 2);
+    uint8 recv_data;
+    recv_data = read_buffer(REG_LR_MODEMCONFIG2);
+    recv_data = (recv_data & RFLR_MODEMCONFIG2_RXPAYLOADCRC_MASK) | (enable << 2);
 
-   write_buffer(REG_LR_MODEMCONFIG2, recv_data);
+    write_buffer(REG_LR_MODEMCONFIG2, recv_data);
 }
 
 static void lora_set_signal_bandwidth(uint8 bw)
 {
-   uint8 recv_data;
-   recv_data = read_buffer(REG_LR_MODEMCONFIG1);
-   recv_data = (recv_data & RFLR_MODEMCONFIG1_BW_MASK) | (bw << 4);
-   write_buffer(REG_LR_MODEMCONFIG1, recv_data);
+    uint8 recv_data;
+    recv_data = read_buffer(REG_LR_MODEMCONFIG1);
+    recv_data = (recv_data & RFLR_MODEMCONFIG1_BW_MASK) | (bw << 4);
+    write_buffer(REG_LR_MODEMCONFIG1, recv_data);
 }
 
 static void lora_set_implicit_header_on(boolean enable)
 {
-   uint8 recv_data;
-   recv_data = read_buffer(REG_LR_MODEMCONFIG1);
-   recv_data = ((recv_data & RFLR_MODEMCONFIG1_IMPLICITHEADER_MASK) | (enable));
+    uint8 recv_data;
+    recv_data = read_buffer(REG_LR_MODEMCONFIG1);
+    recv_data = ((recv_data & RFLR_MODEMCONFIG1_IMPLICITHEADER_MASK) | (enable));
 
-   write_buffer(REG_LR_MODEMCONFIG1, recv_data);
+    write_buffer(REG_LR_MODEMCONFIG1, recv_data);
 }
 
 static void lora_set_symb_timeout(uint32 value)
 {
-   uint8 recv_data[2];
+    uint8 recv_data[2];
 
-   recv_data[0] = read_buffer(REG_LR_MODEMCONFIG2);
-   recv_data[1] = read_buffer(REG_LR_SYMBTIMEOUTLSB);
-   recv_data[0] = ((recv_data[0] & RFLR_MODEMCONFIG2_SYMBTIMEOUTMSB_MASK) |
+    recv_data[0] = read_buffer(REG_LR_MODEMCONFIG2);
+    recv_data[1] = read_buffer(REG_LR_SYMBTIMEOUTLSB);
+    recv_data[0] = ((recv_data[0] & RFLR_MODEMCONFIG2_SYMBTIMEOUTMSB_MASK) |
                     ((value >> 8) & ~RFLR_MODEMCONFIG2_SYMBTIMEOUTMSB_MASK));
-   recv_data[1] = value & 0xFF;
-   write_buffer(REG_LR_MODEMCONFIG2, recv_data[0]);
-   write_buffer(REG_LR_SYMBTIMEOUTLSB, recv_data[1]);
+    recv_data[1] = value & 0xFF;
+    write_buffer(REG_LR_MODEMCONFIG2, recv_data[0]);
+    write_buffer(REG_LR_SYMBTIMEOUTLSB, recv_data[1]);
 }
 
 static void lora_set_payload_length(uint8 value)
@@ -430,20 +391,19 @@ static void lora_set_payload_length(uint8 value)
 
 static void lora_set_mobile_node(boolean enable)
 {
-   uint8 recv_data;
-   recv_data = read_buffer(REG_LR_MODEMCONFIG3);
-   recv_data = ((recv_data & RFLR_MODEMCONFIG3_MOBILE_NODE_MASK) | (enable << 3));
-   write_buffer(REG_LR_MODEMCONFIG3, recv_data);
+    uint8 recv_data;
+    recv_data = read_buffer(REG_LR_MODEMCONFIG3);
+    recv_data = ((recv_data & RFLR_MODEMCONFIG3_MOBILE_NODE_MASK) | (enable << 3));
+    write_buffer(REG_LR_MODEMCONFIG3, recv_data);
 }
 
 static void rf_receive(void)
 {
-   lora_set_op_mode(STDBY_MODE);
-   write_buffer(REG_LR_IRQFLAGSMASK,IRQN_RXD_Value);
-   write_buffer(REG_LR_HOPPERIOD,  PACKET_MIAX_Value);
-   write_buffer(REG_LR_DIOMAPPING1, 0x00);
-   write_buffer(REG_LR_DIOMAPPING2, 0x00);
-   lora_set_op_mode(RECEIVER_MODE);
-   
-   //lp_type_func.paSwitchCmdfunc(RX_OPEN);
+    lora_set_op_mode(STDBY_MODE);
+    write_buffer(REG_LR_IRQFLAGSMASK,IRQN_RXD_Value);
+    write_buffer(REG_LR_HOPPERIOD,  PACKET_MIAX_Value);
+    write_buffer(REG_LR_DIOMAPPING1, 0x00);
+    write_buffer(REG_LR_DIOMAPPING2, 0x00);
+    lora_set_op_mode(RECEIVER_MODE);
 }
+

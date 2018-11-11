@@ -124,7 +124,7 @@ typedef void (* recv_data_callback)(char *buffer, unsigned short length);
 
 void sx1278_reset(void);
 void sx1278_lora_init(void);
-void rx1278_send_packet(uint8 *buf, uint8 len);
+void sx1278_send_packet(uint8 *buf, uint8 len);
 void sx1278_set_recv_cb(recv_data_callback cb);
 void sx1278_recv_handle(void);
 

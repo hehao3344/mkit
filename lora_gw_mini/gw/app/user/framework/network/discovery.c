@@ -15,8 +15,8 @@
 typedef struct _DISCOVERY_OBJECT
 {
     struct espconn udp_conn;
-    char  dev_uuid[DEV_UUID_LEN];  
-    int   port;       
+    char  dev_uuid[16];
+    int   port;
     char *out_buf;
 } DISCOVERY_OBJECT;
 
@@ -43,7 +43,7 @@ int ICACHE_FLASH_ATTR discovery_create(DISCOVER_ENV *env)
     {
         return -1;
     }
-    
+
     handle->udp_conn.type = ESPCONN_UDP;
     handle->udp_conn.proto.udp = (esp_udp *)os_zalloc(sizeof(esp_udp));
     if (NULL == handle->udp_conn.proto.udp)
@@ -96,15 +96,15 @@ static DISCOVERY_OBJECT * ICACHE_FLASH_ATTR instance(void)
 LOCAL void ICACHE_FLASH_ATTR discovery_recv(void *arg, char *pusrdata, unsigned short length)
 {
     int packet_len;
-    int8 ip[16]  = { 0 };    
-    struct ip_info ipconfig;    
+    int8 ip[16]  = { 0 };
+    struct ip_info ipconfig;
     DISCOVERY_OBJECT *handle = instance();
     if ((NULL == handle) || (NULL == pusrdata))
     {
          return;
     }
-    
-    /* 收到的消息格式 没有ts  
+
+    /* 收到的消息格式 没有ts
     {
         "method":"down_msg",
         "req_id":123456789,
@@ -114,10 +114,10 @@ LOCAL void ICACHE_FLASH_ATTR discovery_recv(void *arg, char *pusrdata, unsigned 
     if (NULL == os_strstr(pusrdata, "dev_search"))
     {
         os_printf("wrong msg format %s \n", pusrdata);
-        return;   
+        return;
     }
-    
-    /*    
+
+    /*
     {
         "method":"up_msg",
         "req_id":123456789,
@@ -126,11 +126,11 @@ LOCAL void ICACHE_FLASH_ATTR discovery_recv(void *arg, char *pusrdata, unsigned 
         {
 		    "dev_uuid":"01001122334455",
 	        "ip":"192.168.10.10",
-            "port":60018	
+            "port":60018
         }
     }
     */
-    
+
 #define JSON_DISCOVERY_RESPONSE "{\
 \"method\":\"up_msg\",\
 \"req_id\":%d,\
@@ -152,19 +152,19 @@ LOCAL void ICACHE_FLASH_ATTR discovery_recv(void *arg, char *pusrdata, unsigned 
 
     //os_printf("discovery: ip \n");
     //os_printf(ip);
-    
+
     if (os_strlen(ip) > 0)
     {
         os_memset(handle->out_buf, 0, MAX_RECV_BUF_LEN);
         os_sprintf(handle->out_buf, JSON_DISCOVERY_RESPONSE, (int)rand(), handle->dev_uuid, ip, handle->port);
-        
+
         /* 不需要加密 */
         packet_len = strlen(handle->out_buf);
         if (packet_len > 0)
         {
             espconn_sent(&handle->udp_conn, handle->out_buf, packet_len);
         }
-        
+
     }
 
     // send to local network(ap mode).
@@ -178,7 +178,7 @@ LOCAL void ICACHE_FLASH_ATTR discovery_recv(void *arg, char *pusrdata, unsigned 
     {
         memset(handle->out_buf, 0, MAX_RECV_BUF_LEN);
         os_sprintf(handle->out_buf, JSON_DISCOVERY_RESPONSE, (int)rand(), handle->dev_uuid, ip, handle->port);
-        
+
         /* 不需要加密 */
         packet_len = strlen(handle->out_buf);
         if (packet_len > 0)

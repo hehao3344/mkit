@@ -402,12 +402,12 @@ user_esp_platform_set_info(struct espconn *pconn, uint8 *pbuffer)
             os_free(pdata);
         }
     }
-    
+
     if((rr|gg|bb|cw|ww) == 0){
         if(light_sleep_flg==0){
 
         }
-        
+
     }else{
         if(light_sleep_flg==1){
             os_printf("modem sleep en\r\n");
@@ -1294,7 +1294,7 @@ user_esp_platform_check_ip(uint8 reset_flag)
 void ICACHE_FLASH_ATTR
 user_esp_platform_init(void)
 {
-
+#if 0
 	os_sprintf(iot_version,"%s%d.%d.%dt%d(%s)",VERSION_TYPE,IOT_VERSION_MAJOR,\
 	IOT_VERSION_MINOR,IOT_VERSION_REVISION,device_type,UPGRADE_FALG);
 	os_printf("IOT VERSION = %s\n",iot_version);
@@ -1393,6 +1393,8 @@ user_esp_platform_init(void)
         os_timer_setfn(&client_timer, (os_timer_func_t *)user_esp_platform_check_ip, (void *)1);
         os_timer_arm(&client_timer, 100, 0);
     }
+#endif
+
 }
 
 #endif

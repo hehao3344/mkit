@@ -15,22 +15,22 @@ int packet_enc(char * buf_in, int len_in, char * buf_out, int * out_len)
     int valid_len = 0;
     int padding_len = 0;
     PACKET_HEAD head;
-    head.magic      = MAGIC_NUM;    
-    
+    head.magic      = MAGIC_NUM;
+
     if (0 == len_in%MIN_BLOCK_LEN)
     {
-        valid_len = len_in;  
-        padding_len = 0;  
+        valid_len = len_in;
+        padding_len = 0;
     }
     else
     {
-        /* ÐèÒªÌî³ä (MIN_BLOCK_LEN - len_in%MIN_BLOCK_LEN) ÔÚÄ©Î² */
         padding_len = (MIN_BLOCK_LEN - len_in%MIN_BLOCK_LEN);
-        valid_len   = len_in + padding_len; 
+        valid_len   = len_in + padding_len;
     }
+
     head.len        = valid_len;
     head.valid_len  = len_in;
-    
+
     if (*out_len >= sizeof(PACKET_HEAD) + valid_len)
     {
         ret = 0;
@@ -42,7 +42,7 @@ int packet_enc(char * buf_in, int len_in, char * buf_out, int * out_len)
         }
         *out_len = sizeof(PACKET_HEAD) + len_in + padding_len;
     }
-    
+
     return ret;
 }
 
@@ -62,7 +62,7 @@ int packet_dec(char * buf_in, int len_in, char * buf_out, int * out_len)
             * out_len = head.valid_len;
         }
     }
-    
+
     return ret;
 }
 
@@ -72,13 +72,13 @@ int packet_test(void)
     char buffer[128];
     int  out_len = sizeof(buffer);
     packet_enc(in, strlen(in), buffer, &out_len);
-    
+
     os_printf("get total %d \n", out_len);
-    
+
     char buffer_out[64] = {0};
     out_len = sizeof(buffer_out);
     packet_dec(buffer, out_len, buffer_out, &out_len);
     os_printf("get out string %s len %d \n", buffer_out, out_len);
-        
-    return 0;    
+
+    return 0;
 }

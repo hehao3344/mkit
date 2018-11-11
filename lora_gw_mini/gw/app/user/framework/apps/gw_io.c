@@ -13,6 +13,7 @@
 #include "os_type.h"
 #include "mem.h"
 #include "user_interface.h"
+#include "../device/sx1276.h"
 #include "gw_io.h"
 
 static void gpio_intr_handler();
@@ -36,13 +37,13 @@ void ICACHE_FLASH_ATTR gw_io_status_output(uint8 on_off)
 *******************************************************************************/
 void ICACHE_FLASH_ATTR gw_io_wifi_output(uint8 on_off)
 {
-    GPIO_OUTPUT_SET(GW_WIFI_IO_NUM, on_off);
+    /* gpio16 éœ€è¦å•ç‹¬æ§åˆ¶ */
+    gpio16_output_set(on_off);
 }
 
-// GPIO16¿ØÖÆ¸´Î»
 void ICACHE_FLASH_ATTR gw_io_sx1278_rst_output(uint8 on_off)
 {
-
+    GPIO_OUTPUT_SET(GW_SX1278_IO_NUM, on_off);
 }
 
 /******************************************************************************
@@ -52,64 +53,83 @@ void ICACHE_FLASH_ATTR gw_io_sx1278_rst_output(uint8 on_off)
  * Returns      : none
 *******************************************************************************/
 // https://blog.csdn.net/freelifewe/article/details/62039263
-// GPIO_PIN_INTR_DISABLE = 0,  //²»Ê¹ÓÃÖĞ¶Ï
-// GPIO_PIN_INTR_POSEDGE = 1,  //ÉÏÉıÑØ
-// GPIO_PIN_INTR_NEGEDGE = 2,  //ÏÂ½µÑØ
-// GPIO_PIN_INTR_ANYEDGE = 3,  //Ë«±ßÑØ
-// GPIO_PIN_INTR_LOLEVEL = 4,  //µÍµçÆ½
-// GPIO_PIN_INTR_HILEVEL = 5   //¸ßµçÆ½
-void ICACHE_FLASH_ATTR gw_io_init( void )
+// GPIO_PIN_INTR_DISABLE = 0,   // ä¸ä½¿ç”¨ä¸­æ–­
+// GPIO_PIN_INTR_POSEDGE = 1,   // ä¸Šå‡æ²¿
+// GPIO_PIN_INTR_NEGEDGE = 2,   // ä¸‹é™æ²¿
+// GPIO_PIN_INTR_ANYEDGE = 3,   // åŒè¾¹æ²¿
+// GPIO_PIN_INTR_LOLEVEL = 4,   // ä½ç”µå¹³
+// GPIO_PIN_INTR_HILEVEL = 5    // é«˜ç”µå¹³
+void ICACHE_FLASH_ATTR gw_io_init(void)
 {
+    /* wifi status */
+    gpio16_output_conf();
+    /* system status */
     PIN_FUNC_SELECT(GW_STATUS_IO_MUX, GW_STATUS_IO_FUNC);
-    PIN_FUNC_SELECT(GW_WIFI_IO_MUX,   GW_WIFI_IO_FUNC);
+    /* 1278 reset */
+    PIN_FUNC_SELECT(GW_SX1278_IO_MUX, GW_SX1278_IO_FUNC);
 
-    // ½«¹Ü½ÅÉèÖÃÎªGPIO¿Ú
+    // SX1278 irq input.
+    // å°†MTDI_Uç®¡è„šè®¾ç½®ä¸ºGPIOå£
     PIN_FUNC_SELECT(GW_SX1278_IRQ_IO_MUX, GW_SX1278_IRQ_IO_FUNC);
-
-    // ÉèÖÃGPIO5ÎªÊäÈë×´Ì¬
-    GPIO_DIS_OUTPUT(GW_SX1278_IRQ_IO_FUNC);  // Ê¹ÄÜÊä³ö¹¦ÄÜ
-
-    // Òı½ÅÆô¶¯ÉÏÀ­µç×è
+    //è®¾ç½®GPIO12ä¸ºè¾“å…¥çŠ¶æ€
+    GPIO_DIS_OUTPUT(GPIO_ID_PIN(GW_SX1278_IRQ_IO_NUM));
+    // MTDI_Uå¼•è„šå¯åŠ¨ä¸Šæ‹‰ç”µé˜»
     PIN_PULLUP_EN(GW_SX1278_IRQ_IO_MUX);
-
-    // ÉèÖÃÖĞ¶Ïº¯Êı
-    ETS_GPIO_INTR_ATTACH(&gpio_intr_handler, NULL);
-
-    //ÉèÖÃÖĞ¶Ï´¥·¢·½Ê½ ÏÂ½µÑØ
-    gpio_pin_intr_state_set(GPIO_ID_PIN(5), GPIO_PIN_INTR_NEGEDGE);
-
-    // È«¾Ö¹Ø±ÕGPIOÖĞ¶Ï
+    // å…¨å±€å…³é—­GPIOä¸­æ–­
     ETS_GPIO_INTR_DISABLE();
-
-    // Çå³ı¸ÃÒı½ÅµÄGPIOÖĞ¶Ï±êÖ¾
-    GPIO_REG_WRITE(GPIO_STATUS_W1TC_ADDRESS,  BIT(5));
-
-    // ÖĞ¶ÏÊ¹ÄÜ
+    //è®¾ç½®ä¸­æ–­å‡½æ•°
+    ETS_GPIO_INTR_ATTACH(&gpio_intr_handler, NULL);
+    // è®¾ç½®ä¸­æ–­è§¦å‘æ–¹å¼ï¼šä½ç”µå¹³è§¦å‘
+    gpio_pin_intr_state_set(GPIO_ID_PIN(GW_SX1278_IRQ_IO_NUM),  GPIO_PIN_INTR_HILEVEL);
     ETS_GPIO_INTR_ENABLE();
 
-    PIN_PULLUP_EN(GW_SX1278_IRQ_IO_MUX);   // Ê¹ÄÜÉÏÀ­
-
-    gpio_output_set(0, 0, 0, BIT5);     // Ê¹ÄÜÊäÈë
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 // static function.
 ////////////////////////////////////////////////////////////////////////////////
-static void gpio_intr_handler()
+LOCAL void gpio_intr_handler(void *arg)
 {
-    // ¶ÁÈ¡GPIO×´Ì¬¼Ä´æÆ÷£¬»ñÈ¡ÖĞ¶ÏĞÅÏ¢
-    uint32 gpio_status = GPIO_REG_READ(GPIO_STATUS_ADDRESS);
+    /** è¯»å–GPIOä¸­æ–­çŠ¶æ€ */
+    u32 pin_status = GPIO_REG_READ(GPIO_STATUS_ADDRESS);
 
-    // ¹Ø±ÕGPIOÖĞ¶Ï
+    os_printf("enter =========  in 0x%x \n", pin_status);
+    /** å…³é—­GPIOä¸­æ–­ */
     ETS_GPIO_INTR_DISABLE();
 
+    /** æ¸…é™¤GPIOä¸­æ–­æ ‡å¿— */
+    GPIO_REG_WRITE(GPIO_STATUS_W1TC_ADDRESS, pin_status);
 
-    // Çå³ıÖĞ¶ÏĞÅÏ¢
+    /** æ£€æµ‹æ˜¯å¦å·²å¼€å…³è¾“å…¥å¼•è„šä¸­æ–­ */
+    if (pin_status & BIT(GW_SX1278_IRQ_IO_NUM))
+    {
+        // sx1278_recv_handle();
+    }
+
+    /** å¼€å¯GPIOä¸­æ–­ */
+    ETS_GPIO_INTR_ENABLE();
+
+}
+
+#if 0
+static void gpio_intr_handler(void *arg)
+{
+    uint32 gpio_status = GPIO_REG_READ(GPIO_STATUS_ADDRESS);
+
+    ETS_GPIO_INTR_DISABLE();
+
     GPIO_REG_WRITE(GPIO_STATUS_W1TC_ADDRESS, gpio_status);
 
-    if (gpio_status & (BIT(5)))
+    os_printf("get status %d \n", gpio_status);
+
+    if (gpio_status & (BIT(4)))
     {
+        os_printf("get status %d \n", gpio_status);
+
+        sx1278_recv_handle();
     }
-    // ¿ªÆôGPIOÖĞ¶Ï
+
     ETS_GPIO_INTR_ENABLE();
 }
+#endif
+
