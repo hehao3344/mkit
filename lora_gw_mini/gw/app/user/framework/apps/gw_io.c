@@ -108,7 +108,6 @@ LOCAL void gpio_intr_handler(void *arg)
 
     /** 开启GPIO中断 */
     ETS_GPIO_INTR_ENABLE();
-
 }
 
 #if 0

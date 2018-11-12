@@ -93,6 +93,15 @@ void sx1276_lora_init(void)
     lora_set_payload_length(0xff);
     lora_set_symb_timeout(0x3FF);
     lora_set_mobile_node(TRUE);
+
+    uint8 value;
+    value = read_buffer(REG_LR_OPMODE);
+    os_printf("=== get lr op 0x%x \n", value);
+
+
+    value = read_buffer(REG_LR_IRQFLAGS);
+    os_printf("=== get irq_flags op 0x%x \n", value);
+
     rf_receive();
 }
 
@@ -255,7 +264,10 @@ static uint8 read_buffer(uint8 addr)
     uint8 value;
 
     spi_send_byte(addr&0x7f);
-    spi_byte_read_espslave(HSPI, &value);
+
+    value = spi_rx8(HSPI);
+    os_printf("get 0x%x valud 0x%x \n", addr, value);
+    // spi_byte_read_espslave(HSPI, &value);
 
     return value;
 }
