@@ -2,7 +2,7 @@
 #include "os_type.h"
 #include "mem.h"
 #include "user_interface.h"
-#include "driver/spi.h"
+#include "driver/spi_lora.h"
 #include "sx1276.h"
 
 #include "driver/spi_interface.h"
@@ -61,7 +61,7 @@ static void lora_set_symb_timeout(uint32 value);
 static void lora_set_payload_length(uint8 value);
 static void lora_set_mobile_node(boolean enable);
 static void rf_receive (void);
-static void spi_init(void);
+static void sx1278_spi_init(void);
 static void spi_send_byte(char data);
 static uint8 spi_read_byte();
 
@@ -76,7 +76,7 @@ void sx1278_reset(void)
 
 void sx1276_lora_init(void)
 {
-    spi_init();
+    sx1278_spi_init();
 
     lora_set_op_mode(SLEEP_MODE);
     lora_fsk(LORA_MODE);
@@ -211,55 +211,27 @@ void sx1278_recv_handle(void)
 ////////////////////////////////////////////////////////////////////////////////
 // static function.
 ////////////////////////////////////////////////////////////////////////////////
-static void spi_init(void)
+static void sx1278_spi_init(void)
 {
-    SpiAttr hSpiAttr;
-    hSpiAttr.bitOrder = SpiBitOrder_MSBFirst;
-    hSpiAttr.speed    = SpiSpeed_1MHz;
-    hSpiAttr.mode     = SpiMode_Master;
-    hSpiAttr.subMode  = SpiSubMode_0;
-
-    // Init HSPI GPIO
-    WRITE_PERI_REG(PERIPHS_IO_MUX, 0x105);
-    PIN_FUNC_SELECT(PERIPHS_IO_MUX_MTDI_U, 2);//configure io to spi mode
-    PIN_FUNC_SELECT(PERIPHS_IO_MUX_MTCK_U, 2);//configure io to spi mode
-    PIN_FUNC_SELECT(PERIPHS_IO_MUX_MTMS_U, 2);//configure io to spi mode
-    PIN_FUNC_SELECT(PERIPHS_IO_MUX_MTDO_U, 2);//configure io to spi mode
-    SPIInit(SpiNum_HSPI, &hSpiAttr);
-
+    // cpol = 0 cpha = 0 msb
+    spi_init(HSPI);
+    spi_mode(HSPI, 0, 0);
     // spi_master_init(HSPI);
 }
 
 static void spi_send_byte(char data)
 {
-
-    uint32_t sendData[1] ={ 0 };
-    SpiData spiData;
-
-    //os_printf("\r\n =============   spi init master   ============= \r\n");
-
-    //Test 8266 slave.Communication format: 1byte command + 1bytes address + x bytes Data.
-    // os_printf("\r\n Master send 32 bytes data to slave(8266)\r\n");
-    os_memset(sendData, 0, sizeof(sendData));
-    sendData[0] = data;
-    spiData.cmd = MASTER_WRITE_DATA_TO_SLAVE_CMD;
-    spiData.cmdLen = 1;
-    spiData.addr = &value;
-    spiData.addrLen = 4;
-    spiData.data = sendData;
-    spiData.dataLen = 4;
-    SPIMasterSendData(SpiNum_HSPI, &spiData);
-
-
+    spi_tx8(HSPI, data);
     //spi_mast_byte_write(HSPI, data);
 }
 
 static uint8 spi_read_byte(void)
 {
-    uint8 read_data;
-    spi_byte_read_espslave(HSPI, &read_data);
+    //uint8 read_data;
+    //spi_byte_read_espslave(HSPI, &read_data);
+    //return read_data;
 
-    return read_data;
+    return spi_rx8(HSPI);
 }
 
 
