@@ -15,6 +15,7 @@
 #include "../core/mem_mgr.h"
 #include "../device/flash_param.h"
 #include "../device/sx1276.h"
+#include "../device/sx1276_hal.h"
 #include "../network/wifi.h"
 #include "../network/discovery.h"
 #include "../crypto/crypto_api.h"
@@ -77,59 +78,12 @@ static void ICACHE_FLASH_ATTR tcp_recv_data_callback(void *arg, char *buffer, un
 static void ICACHE_FLASH_ATTR recv_data_fn(char *buffer, unsigned short len);
 
 
-
-
-
-
-
-#include "driver/spi_interface.h"
-// Show the spi registers.
-#define SHOWSPIREG(i) __ShowRegValue(__func__, __LINE__);
-
-/**
- * @brief Print debug information.
- *
- */
-void __ShowRegValue(const char * func, uint32_t line)
-{
-
-    int i;
-    uint32_t regAddr = 0x60000140; // SPI--0x60000240, HSPI--0x60000140;
-    os_printf("\r\n FUNC[%s],line[%d]\r\n", func, line);
-    os_printf(" SPI_ADDR      [0x%08x]\r\n", READ_PERI_REG(SPI_ADDR(SpiNum_HSPI)));
-    os_printf(" SPI_CMD       [0x%08x]\r\n", READ_PERI_REG(SPI_CMD(SpiNum_HSPI)));
-    os_printf(" SPI_CTRL      [0x%08x]\r\n", READ_PERI_REG(SPI_CTRL(SpiNum_HSPI)));
-    os_printf(" SPI_CTRL2     [0x%08x]\r\n", READ_PERI_REG(SPI_CTRL2(SpiNum_HSPI)));
-    os_printf(" SPI_CLOCK     [0x%08x]\r\n", READ_PERI_REG(SPI_CLOCK(SpiNum_HSPI)));
-    os_printf(" SPI_RD_STATUS [0x%08x]\r\n", READ_PERI_REG(SPI_RD_STATUS(SpiNum_HSPI)));
-    os_printf(" SPI_WR_STATUS [0x%08x]\r\n", READ_PERI_REG(SPI_WR_STATUS(SpiNum_HSPI)));
-    os_printf(" SPI_USER      [0x%08x]\r\n", READ_PERI_REG(SPI_USER(SpiNum_HSPI)));
-    os_printf(" SPI_USER1     [0x%08x]\r\n", READ_PERI_REG(SPI_USER1(SpiNum_HSPI)));
-    os_printf(" SPI_USER2     [0x%08x]\r\n", READ_PERI_REG(SPI_USER2(SpiNum_HSPI)));
-    os_printf(" SPI_PIN       [0x%08x]\r\n", READ_PERI_REG(SPI_PIN(SpiNum_HSPI)));
-    os_printf(" SPI_SLAVE     [0x%08x]\r\n", READ_PERI_REG(SPI_SLAVE(SpiNum_HSPI)));
-    os_printf(" SPI_SLAVE1    [0x%08x]\r\n", READ_PERI_REG(SPI_SLAVE1(SpiNum_HSPI)));
-    os_printf(" SPI_SLAVE2    [0x%08x]\r\n", READ_PERI_REG(SPI_SLAVE2(SpiNum_HSPI)));
-
-    for (i = 0; i < 16; ++i) {
-        os_printf(" ADDR[0x%08x],Value[0x%08x]\r\n", regAddr, READ_PERI_REG(regAddr));
-        regAddr += 4;
-    }
-
-}
-
-
-
-
-
 boolean ICACHE_FLASH_ATTR schedule_create(uint16 smart_config)
 {
     SCHEDULE_OBJECT * handle = instance();
 
     gw_io_init();
 
-
-     __ShowRegValue("ABC", 100);
 
     // gw_io_status_output(1);
 
@@ -141,15 +95,20 @@ boolean ICACHE_FLASH_ATTR schedule_create(uint16 smart_config)
     handle->keys.key_num    = PLUG_KEY_NUM;
     handle->keys.single_key = handle->single_key;
     key_init(&handle->keys);
+    os_printf("key_init config .... \n");
 
     gw_io_sx1278_rst_output(1);
+    os_printf("gw_io_sx1278_rst_output config .... \n");
+
+    sx1276_hal_set_recv_cb(recv_data_fn);
+
+    sx1276_hal_register_rf_func();
+
+    sx1276_hal_reset();
+
+    sx1276_hal_lora_init();
 
     os_printf("finish config .... \n");
-
-    sx1278_reset();
-
-    sx1276_lora_init();
-
 
     int i;
     for (i=0; i<MAX_DEV_COUNT; i++)
@@ -159,13 +118,14 @@ boolean ICACHE_FLASH_ATTR schedule_create(uint16 smart_config)
     }
 
     crypto_api_cbc_set_key(KEY_PASSWORD, strlen(KEY_PASSWORD));
-    sx1276_hal_set_recv_cb(recv_data_fn);
+    //sx1276_hal_set_recv_cb(recv_data_fn);
 
     os_timer_disarm(&handle->sys_timer);
     os_timer_setfn(&handle->sys_timer, (os_timer_func_t *)system_timer_center, handle);
     os_timer_arm(&handle->sys_timer, 3000, 1); // 0 at once, 1 restart auto.
 
     return 0;
+
 #if 0
     os_timer_disarm(&handle->net_led_timer);
     os_timer_setfn(&handle->net_led_timer, (os_timer_func_t *)net_led_center, handle);
@@ -265,12 +225,17 @@ static void system_timer_center( void *arg )
 
     static int flags = 0;
 
-    gw_io_wifi_output(flags);
+    // gw_io_wifi_output(flags);
 
     flags = (0 == flags) ? 1 : 0;
 
     char buffer[8] = {0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x02};
-    sx1278_send_packet(buffer, sizeof(buffer));
+
+    sx1276_hal_rf_send_packet(buffer, sizeof(buffer));
+
+    sx1276_hal_rx_mode();   // 设置为接收模式
+
+    // sx1278_recv_handle();
 
     return;
 
@@ -371,11 +336,11 @@ static void ICACHE_FLASH_ATTR key_short_press( void )
         return;
     }
 
-    os_printf("shoart press \n");
+    os_printf("short press \n");
 
     static int flags = 0;
 
-    gw_io_status_output(flags);
+    // gw_io_status_output(flags);
 
     flags = (0 == flags) ? 1 : 0;
 
@@ -393,7 +358,6 @@ static void ICACHE_FLASH_ATTR key_short_press( void )
         {
             crypto_api_encrypt_buffer(handle->tmp_buf, out_len);
 
-            /* 鍙戦�佸埌瀛愯澶� */
             sx1276_hal_rf_send_packet(handle->tmp_buf, (unsigned char)out_len);
         }
     }
