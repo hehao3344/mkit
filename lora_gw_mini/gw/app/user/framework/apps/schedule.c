@@ -84,7 +84,6 @@ boolean ICACHE_FLASH_ATTR schedule_create(uint16 smart_config)
 
     gw_io_init();
 
-
     // gw_io_status_output(1);
 
     handle->single_key[0] = key_init_single(GW_KEY_0_IO_NUM,
@@ -233,7 +232,13 @@ static void system_timer_center( void *arg )
 
     sx1276_hal_rf_send_packet(buffer, sizeof(buffer));
 
-    sx1276_hal_rx_mode();   // 设置为接收模式
+    // sx1276_hal_rx_mode();   // 设置为接收模式
+
+    int i;
+    for(i=0; i<100; i++)
+    {
+
+    }
 
     // sx1278_recv_handle();
 

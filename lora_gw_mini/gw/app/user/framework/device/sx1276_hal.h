@@ -26,14 +26,11 @@ typedef void (* recv_data_callback)(char *buffer, unsigned short length);
 #define  RF_SDI_L        gw_io_sx1278_mosi_output(0)
 #define  RF_SDI_H        gw_io_sx1278_mosi_output(1)
 
-#define  SX1278_IRQ      // GPIO_ReadInputPin( GPIOC, GPIO_PIN_2 )
-
-
 void sx1276_hal_set_recv_cb(recv_data_callback cb);
-void sx1276_hal_reset( void );
+void sx1276_hal_reset(void);
 void sx1276_hal_register_rf_func( void );
 void sx1276_hal_lora_init( void );
-void sx1276_hal_rf_send_packet( uint8 *rf_tran_buf, uint8 len );
-void sx1276_hal_rx_mode( void );
+void sx1276_hal_rf_send_packet(uint8 *rf_tran_buf, uint8 len);
+void sx1276_hal_rx_mode(void);
 
 #endif

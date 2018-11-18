@@ -61,9 +61,18 @@ void sx1276_hal_lora_init(void)
 static int clk_delay(void)
 {
     int32 i;
-    for (i=0; i<50; i++)
+    int32 j;
+    int32 k;
+    for (i=0; i<10000; i++)
     {
+        for (j=0; j<10000; j++)
+        {
+            for (k=0; k<10000; k++)
+            {
 
+            }
+
+        }
     }
 }
 ////////////////////////////////////////////////////////////////////////////////
@@ -84,11 +93,10 @@ static void fn_send_byte(uint8 out)
         }
 
         RF_CKL_H;                   // toggle clock high
-        //clk_delay();
+        clk_delay();
         out = (out << 1);           // shift 1 place for next bit
         RF_CKL_L;                   // toggle clock low
-
-        //clk_delay();
+        clk_delay();
     }
 }
 
@@ -105,14 +113,10 @@ static uint8 fn_spi_read_byte(void)
         {
             j = j | 0x01;       // if high, make bit high
         }
-        // clk_delay();            // toggle clock high
+        clk_delay();            // toggle clock high
         RF_CKL_L;               // toggle clock low
-
-        // clk_delay();
-        // os_printf("get input %d \n", SX1278_SDO);
+        clk_delay();
     }
-
-
 
     return j;                   // toggle clock low //
 }

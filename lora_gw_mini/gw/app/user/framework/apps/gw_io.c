@@ -107,14 +107,14 @@ void ICACHE_FLASH_ATTR gw_io_init(void)
     //设置中断函数
     ETS_GPIO_INTR_ATTACH(&gpio_intr_handler, NULL);
     // 设置中断触发方式：低电平触发
-    gpio_pin_intr_state_set(GPIO_ID_PIN(GW_SX1278_IRQ_IO_NUM),  GPIO_PIN_INTR_ANYEDGE);
+    gpio_pin_intr_state_set(GPIO_ID_PIN(GW_SX1278_IRQ_IO_NUM),  GPIO_PIN_INTR_HILEVEL);
     ETS_GPIO_INTR_ENABLE();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 // static function.
 ////////////////////////////////////////////////////////////////////////////////
-LOCAL void gpio_intr_handler(void *arg)
+static void gpio_intr_handler()
 {
     /** 读取GPIO中断状态 */
     u32 pin_status = GPIO_REG_READ(GPIO_STATUS_ADDRESS);
@@ -135,26 +135,3 @@ LOCAL void gpio_intr_handler(void *arg)
     /** 开启GPIO中断 */
     ETS_GPIO_INTR_ENABLE();
 }
-
-#if 0
-static void gpio_intr_handler(void *arg)
-{
-    uint32 gpio_status = GPIO_REG_READ(GPIO_STATUS_ADDRESS);
-
-    ETS_GPIO_INTR_DISABLE();
-
-    GPIO_REG_WRITE(GPIO_STATUS_W1TC_ADDRESS, gpio_status);
-
-    os_printf("get status %d \n", gpio_status);
-
-    if (gpio_status & (BIT(4)))
-    {
-        os_printf("get status %d \n", gpio_status);
-
-        sx1278_recv_handle();
-    }
-
-    ETS_GPIO_INTR_ENABLE();
-}
-#endif
-
