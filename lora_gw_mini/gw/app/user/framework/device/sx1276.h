@@ -89,7 +89,7 @@ extern "C"
 #define IRQN_CAD_Value                               0xFA
 #define IRQN_SEELP_Value                             0xFF
 #define PACKET_MIAX_Value                            0xff
- 
+
 typedef enum
 {
     SLEEP_MODE          = (uint8)0x00,
@@ -122,19 +122,19 @@ typedef enum
 
 typedef struct
 {
-   void  ( *lpByteWritefunc )( uint8 src );
-   uint8 ( *lpByteReadfunc )( void );
-   void  ( *lpSwitchEnStatus )( CmdEntype_t cmd );
-   void  ( *paSwitchCmdfunc )( CmdPaType_t cmd );
-   void  ( *lpRecvDataTousr )( uint8 *lpbuf, uint16 length );
+   void  (*lpByteWritefunc)(uint8 src);
+   uint8 (*lpByteReadfunc)(void);
+   void  (*lpSwitchEnStatus)(CmdEntype_t cmd);
+   void  (*paSwitchCmdfunc)(CmdPaType_t cmd);
+   void  (*lpRecvDataTousr)(uint8 *lpbuf, uint16 length);
 } lpCtrlTypefunc_t;
 
-void rx1276_register_rf_func( lpCtrlTypefunc_t *func );
-void sx1276_delay_1s( uint32 ii );
-void sx1276_lora_init( void );
-void sx1278_recv_handle( void );
-void rx1276_rf_send_packet( uint8 *rf_tran_buf, uint8 len );
-void sx1276_rx_mode( void );
+void rx1276_register_rf_func(lpCtrlTypefunc_t *func);
+void sx1276_delay_1s(uint32 ii);
+void sx1276_lora_init(void);
+void sx1278_recv_handle(void);
+void rx1276_rf_send_packet(uint8 *rf_tran_buf, uint8 len);
+void sx1276_rx_mode(void);
 
 #ifdef __cplusplus
 }

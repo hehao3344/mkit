@@ -24,23 +24,11 @@ static lpCtrlTypefunc_t  ctrlTypefunc =
     fn_fqc_recv_data
 };
 
-// Ð¾Æ¬¸´Î»
-void sx1276_hal_reset(void)
-{
-    RF_REST_L;
-    sx1276_delay_1s(2000);
-    RF_REST_H;
-    sx1276_delay_1s(500);
-}
+
 
 void sx1276_hal_set_recv_cb(recv_data_callback cb)
 {
     recv_cb = cb;
-}
-
-void sx1276_hal_register_rf_func(void)
-{
-    rx1276_register_rf_func(&ctrlTypefunc);
 }
 
 void sx1276_hal_rf_send_packet(uint8 *rf_tran_buf, uint8 len)
@@ -50,11 +38,14 @@ void sx1276_hal_rf_send_packet(uint8 *rf_tran_buf, uint8 len)
 
 void sx1276_hal_rx_mode(void)
 {
+
     sx1276_rx_mode();
 }
 
-void sx1276_hal_lora_init(void)
+void sx1276_hal_init(void)
 {
+
+    rx1276_register_rf_func(&ctrlTypefunc);
     sx1276_lora_init();
 }
 
@@ -80,6 +71,9 @@ static int clk_delay(void)
 ////////////////////////////////////////////////////////////////////////////////
 static void fn_send_byte(uint8 out)
 {
+    spi_tx8(HSPI, out);
+
+#if 0
     uint8 i;
     for (i = 0; i < 8; i++)
     {
@@ -98,10 +92,13 @@ static void fn_send_byte(uint8 out)
         RF_CKL_L;                   // toggle clock low
         clk_delay();
     }
+#endif
 }
 
 static uint8 fn_spi_read_byte(void)
 {
+    return spi_rx8(HSPI);
+#if 0
     uint8 i, j;
 
     j = 0;
@@ -119,6 +116,7 @@ static uint8 fn_spi_read_byte(void)
     }
 
     return j;                   // toggle clock low //
+#endif
 }
 
 static void fn_cmd_switch_en(CmdEntype_t cmd)
@@ -170,4 +168,13 @@ static void fn_fqc_recv_data(uint8 *buffer, uint16 len)
     {
         recv_cb((char *)buffer, len);
     }
+}
+
+// Ð¾Æ¬¸´Î»
+static void sx1276_hal_reset(void)
+{
+    RF_REST_L;
+    sx1276_delay_1s(2000);
+    RF_REST_H;
+    sx1276_delay_1s(500);
 }

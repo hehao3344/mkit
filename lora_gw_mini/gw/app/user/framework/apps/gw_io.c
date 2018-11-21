@@ -13,7 +13,6 @@
 #include "os_type.h"
 #include "mem.h"
 #include "user_interface.h"
-#include "../device/sx1276.h"
 #include "gw_io.h"
 
 static void gpio_intr_handler();
@@ -89,11 +88,13 @@ void ICACHE_FLASH_ATTR gw_io_init(void)
     /* 1278 reset */
     PIN_FUNC_SELECT(GW_SX1278_IO_MUX, GW_SX1278_IO_FUNC);
 
+#if 0
     // GPIO-SPI init
     PIN_FUNC_SELECT(GW_SX1278_CS_IO_MUX,   GW_SX1278_CS_IO_FUNC);
     PIN_FUNC_SELECT(GW_SX1278_SCK_IO_MUX,  GW_SX1278_SCK_IO_FUNC);
     PIN_FUNC_SELECT(GW_SX1278_MOSI_IO_MUX, GW_SX1278_MOSI_IO_FUNC);
     PIN_FUNC_SELECT(GW_SX1278_MISO_IO_MUX, GW_SX1278_MISO_IO_FUNC);
+#endif
 
     // SX1278 irq input.
     // 将MTDI_U管脚设置为GPIO口
