@@ -34,6 +34,10 @@
 #define LORA_CS_IO_NUM     15
 #define LORA_CS_IO_FUNC    FUNC_GPIO15
 
+#define LORA_IRQ_IO_MUX    PERIPHS_IO_MUX_GPIO4_U
+#define LORA_IRQ_IO_NUM    4
+#define LORA_IRQ_IO_FUNC   FUNC_GPIO4
+
 //Define SPI hardware modules
 #define SPI                 0
 #define HSPI                1
@@ -61,7 +65,8 @@
 
 void spi_init(uint8 spi_no);
 void spi_mode(uint8 spi_no, uint8 spi_cpha,uint8 spi_cpol);
-void spi_cs_output(uint8 on_off); /* SPI CS */
+void spi_cs_output(uint8 on_off);   /* SPI CS */
+uint8 spi_irq_input(void);          /* 是否有数据过来 */
 void spi_init_gpio(uint8 spi_no, uint8 sysclk_as_spiclk);
 void spi_clock(uint8 spi_no, uint16 prediv, uint8 cntdiv);
 void spi_tx_byte_order(uint8 spi_no, uint8 byte_order);
@@ -69,7 +74,7 @@ void spi_rx_byte_order(uint8 spi_no, uint8 byte_order);
 uint32 spi_transaction(uint8 spi_no, uint8 cmd_bits, uint16 cmd_data, uint32 addr_bits, uint32 addr_data, uint32 dout_bits, uint32 dout_data, uint32 din_bits, uint32 dummy_bits);
 
 //Expansion Macros
-#define spi_busy(spi_no) READ_PERI_REG(SPI_CMD(spi_no))&SPI_USR
+#define spi_busy(spi_no)            READ_PERI_REG(SPI_CMD(spi_no))&SPI_USR
 #define spi_txd(spi_no, bits, data) spi_transaction(spi_no, 0, 0, 0, 0, bits, (uint32) data, 0, 0)
 #define spi_tx8(spi_no, data)       spi_transaction(spi_no, 0, 0, 0, 0, 8,    (uint32) data, 0, 0)
 #define spi_tx16(spi_no, data)      spi_transaction(spi_no, 0, 0, 0, 0, 16,   (uint32) data, 0, 0)

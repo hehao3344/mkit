@@ -132,18 +132,15 @@ void sx1276_lora_init(void)
 
     uint8 value;
     value = read_buffer(REG_LR_OPMODE);
-    os_printf("=== get lr op 0x%x \n", value);
-
-
     value = read_buffer(REG_LR_IRQFLAGS);
-    os_printf("=== get irq_flags op 0x%x \n", value);
+    // os_printf("=== get irq_flags op 0x%x \n", value);
 
     rf_receive();
 }
 
 void sx1276_rx_mode(void)
 {
-    rf_receive();
+    rf_receive(); 
 }
 
 void sx1278_recv_handle(void)
@@ -259,7 +256,7 @@ static uint8 read_buffer(uint8 addr)
     lp_type_func.lpByteWritefunc(addr & 0x7f );
     value = lp_type_func.lpByteReadfunc();
     lp_type_func.lpSwitchEnStatus(EN_CLOSE);// NSS = 1;
-    os_printf("read = 0x%x of addr 0x%x \n", value, addr);
+    // os_printf("read = 0x%x of addr 0x%x \n", value, addr);
 
     return value;
 }

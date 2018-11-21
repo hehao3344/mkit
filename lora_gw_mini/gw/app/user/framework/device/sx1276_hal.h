@@ -28,9 +28,9 @@ typedef void (* recv_data_callback)(char *buffer, unsigned short length);
 #define  RF_SDI_H        //gw_io_sx1278_mosi_output(1)
 
 void sx1276_hal_set_recv_cb(recv_data_callback cb);
-void sx1276_hal_reset(void);
 void sx1276_hal_init(void);
 void sx1276_hal_send(uint8 *rf_tran_buf, uint8 len);
 void sx1276_hal_rx_mode(void);
+void sx1276_hal_receive_handle(void);
 
 #endif

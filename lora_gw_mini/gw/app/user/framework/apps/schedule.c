@@ -101,11 +101,7 @@ boolean ICACHE_FLASH_ATTR schedule_create(uint16 smart_config)
 
     sx1276_hal_set_recv_cb(recv_data_fn);
 
-    sx1276_hal_register_rf_func();
-
-    sx1276_hal_reset();
-
-    sx1276_hal_lora_init();
+    sx1276_hal_init();
 
     os_printf("finish config .... \n");
 
@@ -121,7 +117,7 @@ boolean ICACHE_FLASH_ATTR schedule_create(uint16 smart_config)
 
     os_timer_disarm(&handle->sys_timer);
     os_timer_setfn(&handle->sys_timer, (os_timer_func_t *)system_timer_center, handle);
-    os_timer_arm(&handle->sys_timer, 3000, 1); // 0 at once, 1 restart auto.
+    os_timer_arm(&handle->sys_timer, 1000, 1); // 0 at once, 1 restart auto.
 
     return 0;
 
@@ -230,18 +226,13 @@ static void system_timer_center( void *arg )
 
     char buffer[8] = {0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x02};
 
-    sx1276_hal_rf_send_packet(buffer, sizeof(buffer));
+    sx1276_hal_send(buffer, sizeof(buffer));
 
-    // sx1276_hal_rx_mode();   // 设置为接收模式
-
-    int i;
-    for(i=0; i<100; i++)
-    {
-
-    }
-
-    // sx1278_recv_handle();
-
+    sx1276_hal_rx_mode();   // 设置为接收模式
+    sx1278_recv_handle();
+    
+    os_printf("get irq %d \n", spi_irq_input());
+    
     return;
 
 
@@ -263,7 +254,6 @@ static void system_timer_center( void *arg )
 
             if (handle->dev_param[i].alive_sec++ > 120)
             {
-                /* 寮�鍏崇姸鎬�-1 鏈煡 */
                 app_cc_set_param(handle->dev_param[i].dev_uuid, 0, -1);
             }
         }

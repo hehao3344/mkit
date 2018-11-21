@@ -13,6 +13,7 @@
 #include "os_type.h"
 #include "mem.h"
 #include "user_interface.h"
+#include "../device/sx1276_hal.h"
 #include "gw_io.h"
 
 static void gpio_intr_handler();
@@ -96,6 +97,7 @@ void ICACHE_FLASH_ATTR gw_io_init(void)
     PIN_FUNC_SELECT(GW_SX1278_MISO_IO_MUX, GW_SX1278_MISO_IO_FUNC);
 #endif
 
+#if 0
     // SX1278 irq input.
     // 将MTDI_U管脚设置为GPIO口
     PIN_FUNC_SELECT(GW_SX1278_IRQ_IO_MUX, GW_SX1278_IRQ_IO_FUNC);
@@ -110,6 +112,8 @@ void ICACHE_FLASH_ATTR gw_io_init(void)
     // 设置中断触发方式：低电平触发
     gpio_pin_intr_state_set(GPIO_ID_PIN(GW_SX1278_IRQ_IO_NUM),  GPIO_PIN_INTR_HILEVEL);
     ETS_GPIO_INTR_ENABLE();
+#endif
+    
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -130,7 +134,7 @@ static void gpio_intr_handler()
     /** 检测是否已开关输入引脚中断 */
     if (pin_status & BIT(GW_SX1278_IRQ_IO_NUM))
     {
-        // sx1278_recv_handle();
+        // sx1276_hal_receive_handle();
     }
 
     /** 开启GPIO中断 */

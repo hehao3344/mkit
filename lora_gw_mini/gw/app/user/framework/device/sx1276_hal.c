@@ -2,6 +2,7 @@
 #include "ets_sys.h"
 #include "osapi.h"
 #include "os_type.h"
+#include "driver/spi_lora.h"
 #include "sx1276.h"
 #include "sx1276_hal.h"
 
@@ -11,6 +12,7 @@ static void  fn_send_byte(uint8 out);
 static uint8 fn_spi_read_byte(void);
 static void  fn_cmd_switch_en(CmdEntype_t cmd);
 static void  fn_cmd_switch_pa(CmdPaType_t cmd);
+static void  sx1276_reset(void);
 
 // 接收到RF的数据
 static void fn_fqc_recv_data(uint8 *lpbuf, uint16 len);
@@ -25,26 +27,36 @@ static lpCtrlTypefunc_t  ctrlTypefunc =
 };
 
 
-
 void sx1276_hal_set_recv_cb(recv_data_callback cb)
 {
     recv_cb = cb;
 }
 
-void sx1276_hal_rf_send_packet(uint8 *rf_tran_buf, uint8 len)
+void sx1276_hal_send(uint8 *rf_tran_buf, uint8 len)
 {
     rx1276_rf_send_packet(rf_tran_buf, len);
 }
 
 void sx1276_hal_rx_mode(void)
 {
-
     sx1276_rx_mode();
 }
 
-void sx1276_hal_init(void)
+void sx1276_hal_receive_handle(void)
 {
+    sx1278_recv_handle();
+}
 
+void sx1276_hal_init(void)
+{    
+    spi_init(HSPI);
+    spi_mode(HSPI, 1, 1);
+    spi_init_gpio(HSPI, 0);
+
+    spi_tx_byte_order(HSPI, 0);
+    spi_rx_byte_order(HSPI, 0);    
+    
+    sx1276_reset();
     rx1276_register_rf_func(&ctrlTypefunc);
     sx1276_lora_init();
 }
@@ -171,7 +183,7 @@ static void fn_fqc_recv_data(uint8 *buffer, uint16 len)
 }
 
 // 芯片复位
-static void sx1276_hal_reset(void)
+static void sx1276_reset(void)
 {
     RF_REST_L;
     sx1276_delay_1s(2000);

@@ -122,7 +122,8 @@ void spi_init_gpio(uint8 spi_no, uint8 sysclk_as_spiclk)
 		PIN_FUNC_SELECT(PERIPHS_IO_MUX_MTCK_U, 2);                  // GPIO13 is HSPI MOSI pin (Master Data Out)
 		PIN_FUNC_SELECT(PERIPHS_IO_MUX_MTMS_U, 2);                  // GPIO14 is HSPI CLK pin (Clock)
 
-		PIN_FUNC_SELECT(LORA_CS_IO_MUX, LORA_CS_IO_FUNC);
+        PIN_FUNC_SELECT(LORA_IRQ_IO_MUX, LORA_IRQ_IO_FUNC);        
+		PIN_FUNC_SELECT(LORA_CS_IO_MUX,  LORA_CS_IO_FUNC);
 		// PIN_FUNC_SELECT(PERIPHS_IO_MUX_MTDO_U, 2);                  // GPIO15 is HSPI CS pin (Chip Select / Slave Select)
 	}
 }
@@ -130,6 +131,11 @@ void spi_init_gpio(uint8 spi_no, uint8 sysclk_as_spiclk)
 void spi_cs_output(uint8 on_off)
 {
     GPIO_OUTPUT_SET(LORA_CS_IO_NUM, on_off);
+}
+
+uint8 spi_irq_input(void)
+{
+    return  (uint8)GPIO_INPUT_GET(GPIO_ID_PIN(LORA_IRQ_IO_NUM));
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -345,10 +351,12 @@ uint32 spi_transaction(uint8 spi_no, uint8 cmd_bits,
 
 		if (READ_PERI_REG(SPI_USER(spi_no))&SPI_RD_BYTE_ORDER)
         {
+            //os_printf("reading1 .... \n");
 			return READ_PERI_REG(SPI_W0(spi_no)) >> (32-din_bits);  //Assuming data in is written to MSB. TBC
 		}
 		else
         {
+            //os_printf("reading2 .... \n");
 			return READ_PERI_REG(SPI_W0(spi_no));                   //Read in the same way as DOUT is sent. Note existing contents of SPI_W0 remain unless overwritten!
 		}
 
