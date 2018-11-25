@@ -89,7 +89,7 @@ void ICACHE_FLASH_ATTR gw_io_init(void)
     /* 1278 reset */
     PIN_FUNC_SELECT(GW_SX1278_IO_MUX, GW_SX1278_IO_FUNC);
 
-#if 0
+#if 1
     // GPIO-SPI init
     PIN_FUNC_SELECT(GW_SX1278_CS_IO_MUX,   GW_SX1278_CS_IO_FUNC);
     PIN_FUNC_SELECT(GW_SX1278_SCK_IO_MUX,  GW_SX1278_SCK_IO_FUNC);
@@ -97,7 +97,7 @@ void ICACHE_FLASH_ATTR gw_io_init(void)
     PIN_FUNC_SELECT(GW_SX1278_MISO_IO_MUX, GW_SX1278_MISO_IO_FUNC);
 #endif
 
-#if 1
+#if 0
     // SX1278 irq input.
     // 将MTDI_U管脚设置为GPIO口
     PIN_FUNC_SELECT(GW_SX1278_IRQ_IO_MUX, GW_SX1278_IRQ_IO_FUNC);
@@ -113,7 +113,7 @@ void ICACHE_FLASH_ATTR gw_io_init(void)
     gpio_pin_intr_state_set(GPIO_ID_PIN(GW_SX1278_IRQ_IO_NUM),  GPIO_PIN_INTR_HILEVEL);
     ETS_GPIO_INTR_ENABLE();
 #endif
-    
+
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -124,7 +124,7 @@ static void gpio_intr_handler()
     /** 读取GPIO中断状态 */
     u32 pin_status = GPIO_REG_READ(GPIO_STATUS_ADDRESS);
 
-    os_printf("enter =222  in 0x%x \n", pin_status);
+    os_printf("enter = 222  in 0x%x \n", pin_status);
     /** 关闭GPIO中断 */
     ETS_GPIO_INTR_DISABLE();
 

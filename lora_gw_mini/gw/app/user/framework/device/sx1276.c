@@ -140,7 +140,7 @@ void sx1276_lora_init(void)
 
 void sx1276_rx_mode(void)
 {
-    rf_receive(); 
+    rf_receive();
 }
 
 void sx1278_recv_handle(void)
@@ -152,7 +152,18 @@ void sx1278_recv_handle(void)
 
     uint8 ver = read_buffer(REG_LR_VERSION);
     os_printf("get version 0x%x \n", ver);
-    
+
+
+    uint8 value = read_buffer(0x4D);
+    os_printf("get 0x4d = 0x%x \n", value);
+
+    value = read_buffer(0x61);
+    os_printf("get 0x61 = 0x%x \n", value);
+
+    write_buffer(0x61, 0x14);
+    value = read_buffer(0x61);
+    os_printf("get 0x61 2= 0x%x \n", value);
+
     lora_set_op_mode(TRANSMITTER_MODE);
     uint8 op_mode = read_buffer(REG_LR_OPMODE);
     os_printf("set 0x%x get mode 0x%x \n", TRANSMITTER_MODE, op_mode);
@@ -259,7 +270,7 @@ static void write_buffer(uint8 addr, uint8 buffer)
 
 static uint8 read_buffer(uint8 addr)
 {
-    uint8 value;
+    uint8 value = 0;
 
     lp_type_func.lpSwitchEnStatus(EN_OPEN); // NSS = 0;
     lp_type_func.lpByteWritefunc(addr & 0x7f );
@@ -272,17 +283,20 @@ static uint8 read_buffer(uint8 addr)
 
 static void lora_set_op_mode(RFMODE_SET opMode)
 {
-    uint8 op_mode_prev;
+    uint8 op_mode_prev = 0;
     op_mode_prev = read_buffer(REG_LR_OPMODE);
+
+    os_printf("get opmode 0x%x \n", op_mode_prev);
     op_mode_prev &= 0xF8;
     op_mode_prev |= (uint8)opMode;
 
+    os_printf("set opmode to 0x%x 0x%x \n", op_mode_prev, opMode);
     write_buffer(REG_LR_OPMODE, op_mode_prev);
 }
 
 static void lora_fsk(DEBUGGING_FSK_OOK opMode)
 {
-    uint8 op_mode_prev;
+    uint8 op_mode_prev = 0;
     op_mode_prev = read_buffer(REG_LR_OPMODE);
     op_mode_prev &=0x7F;
     op_mode_prev |= (uint8)opMode;

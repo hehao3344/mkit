@@ -47,9 +47,7 @@ void spi_init(uint8 spi_no){
     spi_clock(spi_no, SPI_CLK_PREDIV, SPI_CLK_CNTDIV);
     spi_tx_byte_order(spi_no, SPI_BYTE_ORDER_HIGH_TO_LOW);
     spi_rx_byte_order(spi_no, SPI_BYTE_ORDER_HIGH_TO_LOW);
-
     // SET_PERI_REG_MASK(SPI_USER(spi_no), SPI_CS_SETUP|SPI_CS_HOLD);
-    
     CLEAR_PERI_REG_MASK(SPI_USER(spi_no), SPI_FLASH_MODE);
 }
 
@@ -86,9 +84,6 @@ void spi_mode(uint8 spi_no, uint8 spi_cpha, uint8 spi_cpol)
 	}
 }
 
-
-////////////////////////////////////////////////////////////////////////////////
-
 ////////////////////////////////////////////////////////////////////////////////
 //
 // Function Name: spi_init_gpio
@@ -122,12 +117,11 @@ void spi_init_gpio(uint8 spi_no, uint8 sysclk_as_spiclk)
 		PIN_FUNC_SELECT(PERIPHS_IO_MUX_MTDI_U, 2);                  // GPIO12 is HSPI MISO pin (Master Data In)
 		PIN_FUNC_SELECT(PERIPHS_IO_MUX_MTCK_U, 2);                  // GPIO13 is HSPI MOSI pin (Master Data Out)
 		PIN_FUNC_SELECT(PERIPHS_IO_MUX_MTMS_U, 2);                  // GPIO14 is HSPI CLK pin (Clock)
-		
-		PIN_FUNC_SELECT(LORA_CS_IO_MUX,  LORA_CS_IO_FUNC);
-		
-        PIN_FUNC_SELECT(LORA_IRQ_IO_MUX, LORA_IRQ_IO_FUNC);        
 
-		// PIN_FUNC_SELECT(PERIPHS_IO_MUX_MTDO_U, 2);                  // GPIO15 is HSPI CS pin (Chip Select / Slave Select)
+	    PIN_FUNC_SELECT(LORA_CS_IO_MUX,  LORA_CS_IO_FUNC);
+        PIN_FUNC_SELECT(LORA_IRQ_IO_MUX, LORA_IRQ_IO_FUNC);
+
+	    //PIN_FUNC_SELECT(PERIPHS_IO_MUX_MTDO_U, 2);                  // GPIO15 is HSPI CS pin (Chip Select / Slave Select)
 	}
 }
 
@@ -209,8 +203,6 @@ void spi_tx_byte_order(uint8 spi_no, uint8 byte_order){
 		CLEAR_PERI_REG_MASK(SPI_USER(spi_no), SPI_WR_BYTE_ORDER);
 	}
 }
-
-
 
 ////////////////////////////////////////////////////////////////////////////////
 //

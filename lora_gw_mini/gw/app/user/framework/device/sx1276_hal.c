@@ -48,44 +48,29 @@ void sx1276_hal_receive_handle(void)
 }
 
 void sx1276_hal_init(void)
-{    
+{
+#ifdef USE_HSPI
     spi_init(HSPI);
     spi_mode(HSPI, 1, 1);
     spi_init_gpio(HSPI, 0);
-
     spi_tx_byte_order(HSPI, 0);
-    spi_rx_byte_order(HSPI, 0);    
-    
+    spi_rx_byte_order(HSPI, 0);
+#else
+#endif
     sx1276_reset();
     rx1276_register_rf_func(&ctrlTypefunc);
     sx1276_lora_init();
+
 }
 
-static int clk_delay(void)
-{
-    int32 i;
-    int32 j;
-    int32 k;
-    for (i=0; i<10000; i++)
-    {
-        for (j=0; j<10000; j++)
-        {
-            for (k=0; k<10000; k++)
-            {
-
-            }
-
-        }
-    }
-}
 ////////////////////////////////////////////////////////////////////////////////
 // static function
 ////////////////////////////////////////////////////////////////////////////////
 static void fn_send_byte(uint8 out)
 {
+#ifdef USE_HSPI
     spi_tx8(HSPI, out);
-
-#if 0
+#else
     uint8 i;
     for (i = 0; i < 8; i++)
     {
@@ -99,18 +84,20 @@ static void fn_send_byte(uint8 out)
         }
 
         RF_CKL_H;                   // toggle clock high
-        clk_delay();
+        //clk_delay();
         out = (out << 1);           // shift 1 place for next bit
         RF_CKL_L;                   // toggle clock low
-        clk_delay();
+        //clk_delay();
     }
 #endif
 }
 
 static uint8 fn_spi_read_byte(void)
 {
+
+#ifdef USE_HSPI
     return spi_rx8(HSPI);
-#if 0
+#else
     uint8 i, j;
 
     j = 0;
@@ -122,9 +109,9 @@ static uint8 fn_spi_read_byte(void)
         {
             j = j | 0x01;       // if high, make bit high
         }
-        clk_delay();            // toggle clock high
+        //clk_delay();            // toggle clock high
         RF_CKL_L;               // toggle clock low
-        clk_delay();
+        //clk_delay();
     }
 
     return j;                   // toggle clock low //
