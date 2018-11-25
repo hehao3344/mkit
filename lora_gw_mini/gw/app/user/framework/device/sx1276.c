@@ -150,6 +150,14 @@ void sx1278_recv_handle(void)
     uint8 crc_value     = 0;
     uint8 sx1278_rlen   = 0;
 
+    uint8 ver = read_buffer(REG_LR_VERSION);
+    os_printf("get version 0x%x \n", ver);
+    
+    lora_set_op_mode(TRANSMITTER_MODE);
+    uint8 op_mode = read_buffer(REG_LR_OPMODE);
+    os_printf("set 0x%x get mode 0x%x \n", TRANSMITTER_MODE, op_mode);
+
+
     rf_ex0_status = read_buffer(REG_LR_IRQFLAGS);
     os_printf("get status 0x%x \n", rf_ex0_status);
     if (0x40 == (rf_ex0_status & 0x40))
@@ -193,6 +201,7 @@ void sx1278_recv_handle(void)
     }
     else if (0x08 == (rf_ex0_status & 0x08))
     {
+        /* TX DONE */
         lora_set_op_mode(STDBY_MODE);
         write_buffer(REG_LR_IRQFLAGSMASK, IRQN_RXD_Value);
         write_buffer(REG_LR_HOPPERIOD,   PACKET_MIAX_Value);
@@ -265,7 +274,7 @@ static void lora_set_op_mode(RFMODE_SET opMode)
 {
     uint8 op_mode_prev;
     op_mode_prev = read_buffer(REG_LR_OPMODE);
-    op_mode_prev &= 0xf8;
+    op_mode_prev &= 0xF8;
     op_mode_prev |= (uint8)opMode;
 
     write_buffer(REG_LR_OPMODE, op_mode_prev);

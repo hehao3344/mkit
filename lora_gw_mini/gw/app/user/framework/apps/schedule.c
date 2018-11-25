@@ -228,7 +228,7 @@ static void system_timer_center( void *arg )
 
     sx1276_hal_send(buffer, sizeof(buffer));
 
-    sx1276_hal_rx_mode();   // 设置为接收模式
+    // sx1276_hal_rx_mode();   // 设置为接收模式
     sx1278_recv_handle();
     
     os_printf("get irq %d \n", spi_irq_input());

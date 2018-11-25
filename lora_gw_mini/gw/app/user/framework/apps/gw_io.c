@@ -97,7 +97,7 @@ void ICACHE_FLASH_ATTR gw_io_init(void)
     PIN_FUNC_SELECT(GW_SX1278_MISO_IO_MUX, GW_SX1278_MISO_IO_FUNC);
 #endif
 
-#if 0
+#if 1
     // SX1278 irq input.
     // 将MTDI_U管脚设置为GPIO口
     PIN_FUNC_SELECT(GW_SX1278_IRQ_IO_MUX, GW_SX1278_IRQ_IO_FUNC);
