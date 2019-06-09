@@ -135,6 +135,8 @@ void sx1276_lora_init( void );
 void sx1278_recv_handle( void );
 void rx1276_rf_send_packet( uint8 *rf_tran_buf, uint8 len );
 void sx1276_rx_mode( void );
+uint8 sx1276_get_send_flags(void);
+void sx1276_set_send_flags(uint8 value);
 
 #ifdef __cplusplus
 }

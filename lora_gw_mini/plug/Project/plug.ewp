@@ -17,7 +17,7 @@
         <debug>1</debug>
         <option>
           <name>GenDeviceSelectMenu</name>
-          <state>STM8S103K3	STM8S103K3</state>
+          <state>STM8S105K6	STM8S105K6</state>
         </option>
         <option>
           <name>GenCodeModel</name>
@@ -600,7 +600,7 @@
         </option>
         <option>
           <name>IlinkIcfFile</name>
-          <state>$TOOLKIT_DIR$\config\lnkstm8s103k3.icf</state>
+          <state>$TOOLKIT_DIR$\config\lnkstm8s105k6.icf</state>
         </option>
         <option>
           <name>IlinkIcfFileSlave</name>
@@ -1605,6 +1605,12 @@
     </file>
     <file>
       <name>$PROJ_DIR$\..\STM8S_StdPeriph_Driver\src\stm8s_tim2.c</name>
+    </file>
+  </group>
+  <group>
+    <name>protocol</name>
+    <file>
+      <name>$PROJ_DIR$\protocol\protocol.c</name>
     </file>
   </group>
   <group>

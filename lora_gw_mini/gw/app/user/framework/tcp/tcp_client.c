@@ -14,6 +14,10 @@
 
 #include "../core/platform.h"
 #include "../core/version.h"
+#include "../tcp/tcp_client.h"
+#include "../apps/prj_config.h"
+#include "../apps/json_format.h"
+
 #include "../device/flash_param.h"
 #include "tcp_client.h"
 
@@ -25,7 +29,10 @@ typedef struct _TCP_CLIENT_OBJECT
     boolean proxy_is_handle;
     boolean proxy_connected;
 
-    int8 inform_buf[64];
+    //int8 inform_buf[64];
+    char reg_buf[256];
+       
+    
     char cur_dev_uuid[20];
     int8 mac[40];
     int  req_id;
@@ -37,7 +44,7 @@ typedef struct _TCP_CLIENT_OBJECT
     ip_addr_t       proxy_server_ip;
     boolean         got_dns_ip;
 
-    recv_data_callback cb;
+    tcp_recv_data_callback cb;
     void *arg;
 } TCP_CLIENT_OBJECT;
 
@@ -80,7 +87,6 @@ boolean ICACHE_FLASH_ATTR tcp_client_create(void)
         return FALSE;
     }
 
-
     handle->proxy_svr_conn.proto.tcp = &handle->proxy_user_tcp;
     handle->proxy_svr_conn.type      = ESPCONN_TCP;
     handle->proxy_svr_conn.state     = ESPCONN_NONE;
@@ -101,24 +107,10 @@ boolean ICACHE_FLASH_ATTR tcp_client_create(void)
     }
     handle->mac[12] = 0;
 
-#if 0
-    handle->mac[2] = handle->mac[3];
-    handle->mac[3] = handle->mac[4];
-    handle->mac[4] = handle->mac[6];
-    handle->mac[5] = handle->mac[7];
-    handle->mac[6] = handle->mac[9];
-    handle->mac[7] = handle->mac[10];
-    handle->mac[8] = handle->mac[12];
-    handle->mac[9] = handle->mac[13];
-    handle->mac[10] = handle->mac[15];
-    handle->mac[11] = handle->mac[16];
-    handle->mac[12] = 0;
-#endif
+    // os_sprintf(handle->inform_buf,  "{\"device\":\"%s\"}\n", handle->mac);
+    os_sprintf(handle->reg_buf, DEV_REGISTER_MSG, "10", handle->mac, 100, VER_MAJOR, VER_MINOR);
 
-
-    os_sprintf(handle->inform_buf,  "{\"device\":\"%s\"}\n", handle->mac);
-
-    os_printf("get mac %s %s\n", handle->mac, handle->inform_buf);
+    os_printf("get mac %s %s\n", handle->mac, handle->reg_buf);
 
     uint32 ip = ipaddr_addr(TCP_SERVER_REMOTE_IP);
     // const char tcp_server_addr[4] = {120, 55, 58, 166};
@@ -217,7 +209,7 @@ LOCAL void ICACHE_FLASH_ATTR dns_to_ip_start(void)
     os_timer_arm(&handle->dns_find_timer, 1000, 0);
 }
 
-void ICACHE_FLASH_ATTR tcp_client_set_callback(recv_data_callback cb, void *arg)
+void ICACHE_FLASH_ATTR tcp_client_set_callback(tcp_recv_data_callback cb, void *arg)
 {
     TCP_CLIENT_OBJECT *handle = instance();
 
@@ -286,7 +278,7 @@ LOCAL void ICACHE_FLASH_ATTR proxy_connect_cb(void *arg)
     os_printf("proxy connect success \n");
     espconn_regist_recvcb(pespconn, proxy_recv);
     espconn_regist_sentcb(pespconn, proxy_sent_cb);
-    espconn_sent(pespconn, (uint8 *)handle->inform_buf, strlen(handle->inform_buf));
+    //espconn_sent(pespconn, (uint8 *)handle->inform_buf, strlen(handle->inform_buf));
 
     handle->proxy_connected = TRUE;
 }
@@ -319,7 +311,8 @@ static void ICACHE_FLASH_ATTR register_center(void *arg)
 
     wifi_get_ip_info(STATION_IF, &ipconfig);
     int status = wifi_station_get_connect_status();
-    if ((status != STATION_GOT_IP) || (0 == handle->got_dns_ip))
+    //if ((status != STATION_GOT_IP) || (0 == handle->got_dns_ip))
+    if (status != STATION_GOT_IP)
     {
         os_printf("waitting for ... \n");
         handle->proxy_is_handle  = FALSE;
@@ -338,10 +331,10 @@ static void ICACHE_FLASH_ATTR register_center(void *arg)
     {
         if (0 == handle->count%5)
         {
-            if (strlen(handle->inform_buf) > 0)
+            if (strlen(handle->reg_buf) > 0)
             {
                 os_printf("update param %d \n", handle->count);
-                espconn_sent(&handle->proxy_svr_conn, (uint8 *)handle->inform_buf, strlen(handle->inform_buf));
+                espconn_sent(&handle->proxy_svr_conn, (uint8 *)handle->reg_buf, strlen(handle->reg_buf));
             }
         }
         handle->count++;

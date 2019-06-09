@@ -49,7 +49,6 @@ int aes_api_cbc_decrypt_buffer(char * buffer, int len)
 
 int aes_api_unit_test(void)
 {
-    int i;
     char buffer[32] = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08};
     int ret = aes_api_cbc_encrypt_buffer(buffer, sizeof(buffer));
     if (0 == ret)

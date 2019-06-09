@@ -6,8 +6,9 @@ extern "C"
 {
 #endif
 
-#define KEY_PASSWORD    "abcdmkitABCDMKIT"
+#define KEY_PASSWORD        "abcdmkitABCDMKIT"
 
+#define VALID_PACKET_LEN    16
 
 void crypto_api_cbc_set_key(char * key, int len);
 

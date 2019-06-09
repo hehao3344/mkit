@@ -1,8 +1,11 @@
 #include "ets_sys.h"
 #include "os_type.h"
 #include "osapi.h"
-#include "sx1276.h"
+#include "../protocol/protocol.h"
 
+#include "sx1276.h"
+ 
+#if 0
 static uint8   frequency[3] = { 0x6c, 0x80, 0x00 };
 //static uint8 spreading_factor = 11;   // 7-12
 static uint8   spreading_factor = 7;   // 7-12
@@ -19,11 +22,37 @@ static uint8   coding_rate      = 2;         // 1-4
 //               1000 -> 250kHz
 //               1001 -> 500kHz
 // static uint8   bw_frequency = 7; // 6-9
+
 static uint8   bw_frequency = 3;    // 20.8K
 static uint8   power_value  = 7;
 static uint8   power_data[8]   = { 0x80, 0x80, 0x80, 0x83, 0x86, 0x89, 0x8c, 0x8f };
-static uint8   recv_buffer[12];
-static lpCtrlTypefunc_t lp_type_func = { 0, 0, 0, 0, 0 };
+
+
+#else
+static uint8   frequency[3] = { 0x6c, 0x80, 0x00 };
+static uint8   spreading_factor = 11;   // 7-12
+static uint8   coding_rate      = 1;         // 1-4
+
+//               0000 -> 7.8kHz
+//               0001 -> 10.4kHz
+//               0010 -> 15.6kHz
+//               0011 -> 20.8kHz
+//               0100 -> 31.25kHz
+//               0101 -> 41.7kHz
+//               0110 -> 62.5kHz
+//               0111 -> 125kHz
+//               1000 -> 250kHz
+//               1001 -> 500kHz
+static uint8   bw_frequency = 7;    // 62.5
+static uint8   power_value  = 7;
+//static uint8   power_data[8]   = { 0x80, 0x80, 0x80, 0x83, 0x86, 0x89, 0x8c, 0x8f };
+
+static uint8   power_data[8]   = { 0x80, 0x80, 0x80, 0x83, 0x86, 0x89, 0x8c, 0x8f };
+#endif
+
+static uint8   send_done = 1;
+static uint8   recv_buffer[PACKET_LEN];
+static lpCtrlTypefunc_t lp_type_func = {0, 0, 0, 0, 0};
 
 static void write_buffer(uint8 addr, uint8 buffer);
 static uint8 read_buffer(uint8 addr);
@@ -54,7 +83,9 @@ void sx1276_delay_1s(uint32 ii)
 void rx1276_rf_send_packet(uint8 *rf_tran_buf, uint8 len)
 {
     uint8 i;
-
+    
+    send_done = 0;
+    
     lp_type_func.paSwitchCmdfunc(TX_OPEN);
 
     lora_set_op_mode(STDBY_MODE);
@@ -67,7 +98,7 @@ void rx1276_rf_send_packet(uint8 *rf_tran_buf, uint8 len)
     lp_type_func.lpSwitchEnStatus(EN_OPEN);
     lp_type_func.lpByteWritefunc(0x80);
 
-    for (i = 0; i < len; i++)
+    for (i = 0; i<len; i++)
     {
         lp_type_func.lpByteWritefunc(*rf_tran_buf);
         rf_tran_buf++;
@@ -78,6 +109,16 @@ void rx1276_rf_send_packet(uint8 *rf_tran_buf, uint8 len)
     write_buffer(REG_LR_DIOMAPPING2, 0x00);
 
     lora_set_op_mode(TRANSMITTER_MODE);
+}
+
+uint8 sx1276_get_send_flags(void)
+{
+    return send_done;
+}
+
+void sx1276_set_send_flags(uint8 value)
+{
+    send_done = value;
 }
 
 void rx1276_register_rf_func(lpCtrlTypefunc_t *func)
@@ -130,11 +171,6 @@ void sx1276_lora_init(void)
     lora_set_symb_timeout(0x3FF);
     lora_set_mobile_node(TRUE);
 
-    uint8 value;
-    value = read_buffer(REG_LR_OPMODE);
-    value = read_buffer(REG_LR_IRQFLAGS);
-    // os_printf("=== get irq_flags op 0x%x \n", value);
-
     rf_receive();
 }
 
@@ -150,27 +186,16 @@ void sx1278_recv_handle(void)
     uint8 crc_value     = 0;
     uint8 sx1278_rlen   = 0;
 
-    uint8 ver = read_buffer(REG_LR_VERSION);
-    os_printf("get version 0x%x \n", ver);
-
-
-    uint8 value = read_buffer(0x4D);
-    os_printf("get 0x4d = 0x%x \n", value);
-
-    value = read_buffer(0x61);
-    os_printf("get 0x61 = 0x%x \n", value);
-
-    write_buffer(0x61, 0x14);
-    value = read_buffer(0x61);
-    os_printf("get 0x61 2= 0x%x \n", value);
-
-    lora_set_op_mode(TRANSMITTER_MODE);
-    uint8 op_mode = read_buffer(REG_LR_OPMODE);
-    os_printf("set 0x%x get mode 0x%x \n", TRANSMITTER_MODE, op_mode);
-
+    //uint8 ver = read_buffer(REG_LR_VERSION);
+    //os_printf("get version 0x%x \n", ver);
+    
+    //lora_set_op_mode(TRANSMITTER_MODE);
+    //uint8 op_mode = read_buffer(REG_LR_OPMODE);
+    //os_printf("set 0x%x get mode 0x%x \n", TRANSMITTER_MODE, op_mode);
 
     rf_ex0_status = read_buffer(REG_LR_IRQFLAGS);
     os_printf("get status 0x%x \n", rf_ex0_status);
+
     if (0x40 == (rf_ex0_status & 0x40))
     {
         crc_value = read_buffer(REG_LR_MODEMCONFIG2);
@@ -209,10 +234,12 @@ void sx1278_recv_handle(void)
         write_buffer(REG_LR_DIOMAPPING2, 0x00);
         lora_set_op_mode(RECEIVER_MODE);
         lp_type_func.paSwitchCmdfunc(RX_OPEN);
+
+        // lp_type_func.lpRecvDataTousr(recv_buffer, sx1278_rlen);
     }
     else if (0x08 == (rf_ex0_status & 0x08))
     {
-        /* TX DONE */
+        /* TX DONE */        
         lora_set_op_mode(STDBY_MODE);
         write_buffer(REG_LR_IRQFLAGSMASK, IRQN_RXD_Value);
         write_buffer(REG_LR_HOPPERIOD,   PACKET_MIAX_Value);
@@ -220,6 +247,7 @@ void sx1278_recv_handle(void)
         write_buffer(REG_LR_DIOMAPPING2, 0x00);
         lora_set_op_mode(RECEIVER_MODE);
         lp_type_func.paSwitchCmdfunc(RX_OPEN);
+        send_done = 1;
     }
     else if(0x04 == (rf_ex0_status & 0x04))
     {
@@ -283,14 +311,11 @@ static uint8 read_buffer(uint8 addr)
 
 static void lora_set_op_mode(RFMODE_SET opMode)
 {
-    uint8 op_mode_prev = 0;
+    uint8 op_mode_prev;
     op_mode_prev = read_buffer(REG_LR_OPMODE);
-
-    os_printf("get opmode 0x%x \n", op_mode_prev);
     op_mode_prev &= 0xF8;
     op_mode_prev |= (uint8)opMode;
 
-    os_printf("set opmode to 0x%x 0x%x \n", op_mode_prev, opMode);
     write_buffer(REG_LR_OPMODE, op_mode_prev);
 }
 

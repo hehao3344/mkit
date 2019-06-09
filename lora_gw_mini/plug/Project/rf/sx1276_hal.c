@@ -46,6 +46,16 @@ void sx1276_hal_rf_send_packet(uint8 *rf_tran_buf, uint8 len)
     rx1276_rf_send_packet(rf_tran_buf, len);
 }
 
+uint8 sx1276_hal_get_send_flags(void)
+{
+    return sx1276_get_send_flags();
+}
+
+void sx1276_hal_set_send_flags(uint8 value)
+{
+    sx1276_set_send_flags(value);
+}
+
 void sx1276_hal_rx_mode(void)
 {
     sx1276_rx_mode();
@@ -88,7 +98,7 @@ static uint8 fn_spi_read_byte(void)
     {
         RF_CKL_H;
         j = (j << 1);           // shift 1 place to the left or shift in 0
-        if (SX1278_SDO)       // check to see if bit is high
+        if (SX1278_SDO)         // check to see if bit is high
         {
             j = j | 0x01;       // if high, make bit high
         }

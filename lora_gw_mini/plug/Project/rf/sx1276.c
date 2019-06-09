@@ -1,6 +1,9 @@
 #include "sx1276.h"
 #include "stm8s.h"
 
+#include "../protocol/protocol.h"
+
+#if 0
 static uint8   frequency[3] = { 0x6c, 0x80, 0x00 };
 //static uint8 spreading_factor = 11;   // 7-12
 static uint8   spreading_factor = 7;   // 7-12
@@ -17,10 +20,34 @@ static uint8   coding_rate      = 2;         // 1-4
 //               1000 -> 250kHz
 //               1001 -> 500kHz
 // static uint8   bw_frequency = 7; // 6-9
+
 static uint8   bw_frequency = 3;    // 20.8K
 static uint8   power_value  = 7;
 static uint8   power_data[8]   = { 0x80, 0x80, 0x80, 0x83, 0x86, 0x89, 0x8c, 0x8f };
-static uint8   recv_buffer[12];
+
+#else
+static uint8   frequency[3] = { 0x6c, 0x80, 0x00 };
+static uint8   spreading_factor = 11;   // 7-12
+static uint8   coding_rate      = 1;         // 1-4
+
+//               0000 -> 7.8kHz
+//               0001 -> 10.4kHz
+//               0010 -> 15.6kHz
+//               0011 -> 20.8kHz
+//               0100 -> 31.25kHz
+//               0101 -> 41.7kHz
+//               0110 -> 62.5kHz
+//               0111 -> 125kHz
+//               1000 -> 250kHz
+//               1001 -> 500kHz
+static uint8   bw_frequency = 7;    // 62.5
+static uint8   power_value  = 7;
+static uint8   power_data[8]   = { 0x80, 0x80, 0x80, 0x83, 0x86, 0x89, 0x8c, 0x8f };
+
+#endif
+
+static uint8   send_done = 1;
+static uint8   recv_buffer[PACKET_LEN];
 static lpCtrlTypefunc_t lp_type_func = { 0, 0, 0, 0, 0 };
 
 static void write_buffer(uint8 addr, uint8 buffer);
@@ -52,7 +79,8 @@ void sx1276_delay_1s(uint32 ii)
 void rx1276_rf_send_packet(uint8 *rf_tran_buf, uint8 len)
 {
     uint8 i;
-
+    
+    send_done = 0;
     lp_type_func.paSwitchCmdfunc(TX_OPEN);
 
     lora_set_op_mode(STDBY_MODE);
@@ -76,6 +104,16 @@ void rx1276_rf_send_packet(uint8 *rf_tran_buf, uint8 len)
     write_buffer(REG_LR_DIOMAPPING2, 0x00);
 
     lora_set_op_mode(TRANSMITTER_MODE);
+}
+
+uint8 sx1276_get_send_flags(void)
+{
+    return send_done;
+}
+
+void sx1276_set_send_flags(uint8 value)
+{
+    send_done = value;
 }
 
 void rx1276_register_rf_func(lpCtrlTypefunc_t *func)
@@ -178,6 +216,8 @@ void sx1278_recv_handle(void)
         write_buffer(REG_LR_DIOMAPPING2, 0x00);
         lora_set_op_mode(RECEIVER_MODE);
         lp_type_func.paSwitchCmdfunc(RX_OPEN);
+        
+        // lp_type_func.lpRecvDataTousr(recv_buffer, sx1278_rlen);
     }
     else if (0x08 == (rf_ex0_status & 0x08))
     {
@@ -188,6 +228,7 @@ void sx1278_recv_handle(void)
         write_buffer(REG_LR_DIOMAPPING2, 0x00);
         lora_set_op_mode(RECEIVER_MODE);
         lp_type_func.paSwitchCmdfunc(RX_OPEN);
+        send_done = 1;
     }
     else if(0x04 == (rf_ex0_status & 0x04))
     {

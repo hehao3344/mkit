@@ -50,5 +50,7 @@ void sx1276_hal_init(void);
 void sx1276_hal_send(uint8 *rf_tran_buf, uint8 len);
 void sx1276_hal_rx_mode(void);
 void sx1276_hal_receive_handle(void);
+void sx1276_hal_set_send_flags(uint8 value);
+uint8 sx1276_hal_get_send_flags(void);
 
 #endif

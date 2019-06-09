@@ -26,11 +26,13 @@
 #include "osapi.h"
 
 #include "user_interface.h"
-
+#include "os_type.h"
 #include "user_devicefind.h"
 #include "user_webserver.h"
 
 #include "driver/uart.h"
+#include "framework/device/flash_param.h"
+#include "framework/apps/smart_config.h"
 #include "framework/apps/schedule.h"
 
 #if ESP_PLATFORM
@@ -81,6 +83,12 @@
 #define SYSTEM_PARTITION_CUSTOMER_PRIV_PARAM                SYSTEM_PARTITION_CUSTOMER_BEGIN
 
 uint32 priv_param_start_sec;
+static uint8      led_status = 0;
+static os_timer_t status_timer;
+
+static void ICACHE_FLASH_ATTR key_short_press(void);
+static void ICACHE_FLASH_ATTR key_long_press(void);
+static void ICACHE_FLASH_ATTR led_status_center(void *arg);
 
 static const partition_item_t at_partition_table[] = {
     { SYSTEM_PARTITION_BOOTLOADER, 						0x0, 												0x1000},
@@ -139,6 +147,107 @@ user_init(void)
     //user_webserver_init(SERVER_PORT);
 #endif
 
-    schedule_create(0);
+#if 1
+    int i;
+    struct station_config station_conf;
+    wifi_station_get_config(&station_conf);
+    os_printf(MACSTR ",%s,%s \n", MAC2STR(station_conf.bssid), station_conf.password, station_conf.ssid);
+
+    //station_conf.bssid_set = 0;
+    //os_strcpy(station_conf.ssid,     "hehao");
+    //os_strcpy(station_conf.password, "ziqiangbuxi");
+    //wifi_station_set_config(&station_conf);
+
+    //wifi_station_get_config(&station_conf);
+    //os_printf(MACSTR ", %s, %s %d\n", MAC2STR(station_conf.bssid), station_conf.password, station_conf.ssid, station_conf.bssid_set);
+
+
+    int8 is_reset = 0;
+    
+    char flags_buf[RESET_FLAGS_LEN+4] = {0};    
+    flash_param_get_reset_flags(flags_buf, RESET_FLAGS_LEN);
+    
+    
+    for (i=0; i<RESET_FLAGS_LEN; i++)
+    {
+        os_printf("0x%x ", flags_buf[i]);
+    }
+
+    int count = 0;
+    for (i=0; i<RESET_FLAGS_LEN; i++)
+    {
+        if (0xFF == flags_buf[i])
+        {
+            count++;
+        }
+    }
+   
+    if (RESET_FLAGS_LEN == count)
+    {
+        is_reset = 1;
+    }
+    
+    if (0 == os_strlen(station_conf.ssid))        
+    {
+        is_reset = 1;
+    }
+    else        
+    {
+        is_reset = 0;
+    }
+    os_printf("\nget is_reset = %d \n", is_reset);
+
+    if (1 == is_reset)
+    {
+        os_printf("airkiss start ... \n");
+        smart_config_start();
+        gw_io_init(key_short_press, key_long_press);
+
+        os_timer_disarm(&status_timer);
+        os_timer_setfn(&status_timer, (os_timer_func_t *)led_status_center, NULL);
+        os_timer_arm(&status_timer, 2000, 0);
+    }
+    else
+    {
+        os_printf("start normal\n");   
+        schedule_create(0);
+    }
+#endif     
 }
 
+static void ICACHE_FLASH_ATTR key_long_press(void)
+{
+    os_printf("long press \n");
+
+    char reset_buf[RESET_FLAGS_LEN] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+    
+    flash_param_set_reset_flags(reset_buf, sizeof(reset_buf));
+    
+    system_restore();
+    system_restart();
+}
+
+static void ICACHE_FLASH_ATTR key_short_press(void)
+{
+    os_printf("short press \n");
+}
+
+static void ICACHE_FLASH_ATTR led_status_center(void *arg)
+{
+    os_timer_arm(&status_timer, 2000, 0);
+    gw_io_wifi_output(led_status);
+    led_status = (0 == led_status) ? 1 : 0;
+    os_printf("get status %d \n", smart_config_get_status());
+
+    int status = wifi_station_get_connect_status();
+    if (status == STATION_GOT_IP)
+    {
+        os_timer_disarm(&status_timer);
+        
+        char reset_done_buf[RESET_FLAGS_LEN] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+        flash_param_set_reset_flags(reset_done_buf, sizeof(reset_done_buf));
+        
+        os_printf("schedule_create start ...\n");
+        schedule_create(0);
+    }
+}

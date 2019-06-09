@@ -26,7 +26,6 @@ static lpCtrlTypefunc_t  ctrlTypefunc =
     fn_fqc_recv_data
 };
 
-
 void sx1276_hal_set_recv_cb(recv_data_callback cb)
 {
     recv_cb = cb;
@@ -40,6 +39,16 @@ void sx1276_hal_send(uint8 *rf_tran_buf, uint8 len)
 void sx1276_hal_rx_mode(void)
 {
     sx1276_rx_mode();
+}
+
+uint8 sx1276_hal_get_send_flags(void)
+{
+    return sx1276_get_send_flags();
+}
+
+void sx1276_hal_set_send_flags(uint8 value)
+{
+    sx1276_set_send_flags(value);
 }
 
 void sx1276_hal_receive_handle(void)

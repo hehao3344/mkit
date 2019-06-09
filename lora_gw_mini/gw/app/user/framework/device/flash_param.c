@@ -10,50 +10,107 @@
 
 #include "flash_param.h"
 
-#define DEV_UUID_LEN            16
-
-// page1 flash map: 
+// page1 flash map:
 
 //////////////////////////////////////////////////////////////////////////////////
 // page1: get function.
 //////////////////////////////////////////////////////////////////////////////////
-static void ICACHE_FLASH_ATTR read_all(char * buffer, unsigned short len);
+static void ICACHE_FLASH_ATTR read_all(void);
 
-static int8 rbuffer[256];
+// Fatal exception 9(LoadStoreAlignmentCause): 一定要定义成 unsigned int 类型的
+static unsigned int rbuffer[MAX_PARAM_BUF_LEN];
 
-/* 每个16字节 */
-void ICACHE_FLASH_ATTR flash_param_get_dev_uuid(int index, char *buffer, int len)
+void ICACHE_FLASH_ATTR flash_param_get_reset_flags(char *buffer, int len)
 {
-    if ((len < DEV_UUID_LEN) || (index >= 4))
+    if (len < RESET_FLAGS_LEN)
     {
         return;
     }
+
+    read_all();
     
-    read_all(rbuffer, 256);
-    os_memcpy(buffer, &rbuffer[index*DEV_UUID_LEN], DEV_UUID_LEN);
+    os_memcpy(buffer, &rbuffer[RESET_FLAGS_OFFSET], RESET_FLAGS_LEN);
+}
+
+/* 每个X字节 */
+void ICACHE_FLASH_ATTR flash_param_get_dev_mac(int index, char *buffer, int len)
+{
+    if ((len < DEV_MAC_LEN) || (index >= MAX_DEV_COUNT))
+    {
+        return;
+    }
+
+    read_all();
+    os_memcpy(buffer, &rbuffer[index*DEV_MAC_LEN], DEV_MAC_LEN);
+}
+
+void ICACHE_FLASH_ATTR flash_param_get_cc_mac(char *buffer, int len)
+{
+    if (len < DEV_MAC_LEN)
+    {
+        return;
+    }
+
+    read_all();
+    os_memcpy(buffer, &rbuffer[CC_MAC_OFFSET], DEV_MAC_LEN);
 }
 
 //////////////////////////////////////////////////////////////////////////////////
 // page1: set function.
 //////////////////////////////////////////////////////////////////////////////////
-void ICACHE_FLASH_ATTR flash_param_set_dev_uuid(int index, char *buffer, int len)
+void ICACHE_FLASH_ATTR flash_param_set_dev_mac(int index, char *buffer, int len)
 {
-    if ((len < DEV_UUID_LEN) || (index >= 4))
+    if ((len < DEV_MAC_LEN) || (index >= MAX_DEV_COUNT))
     {
         return;
     }
+
+    read_all();
+    os_memcpy(&rbuffer[index*DEV_MAC_LEN], buffer, DEV_MAC_LEN);
     
-    read_all(rbuffer, 256);
-    os_memcpy(&rbuffer[index*DEV_UUID_LEN], buffer, DEV_UUID_LEN);
+    spi_flash_erase_protect_disable();
+    spi_flash_erase_sector(BASIC_PARAM_SEC + USER_PARAM_BASIC);
+
+    spi_flash_write((BASIC_PARAM_SEC + USER_PARAM_BASIC) * SPI_FLASH_SEC_SIZE,
+            	    rbuffer, sizeof(rbuffer));
+}
+
+void ICACHE_FLASH_ATTR flash_param_set_cc_mac(char *buffer, int len)
+{
+    if (len < DEV_MAC_LEN)
+    {
+        return;
+    }
+
+    read_all();
+    os_memcpy(&rbuffer[CC_MAC_OFFSET], buffer, DEV_MAC_LEN);
 
     spi_flash_erase_sector(BASIC_PARAM_SEC + USER_PARAM_BASIC);
     spi_flash_write((BASIC_PARAM_SEC + USER_PARAM_BASIC) * SPI_FLASH_SEC_SIZE,
-            	     (unsigned int *)rbuffer, 256);
+            	     (unsigned int *)rbuffer, sizeof(rbuffer));
 }
 
-static void ICACHE_FLASH_ATTR read_all(char * buffer, unsigned short len)
+void ICACHE_FLASH_ATTR flash_param_set_reset_flags(char *buffer, int len)
 {
-    os_memset(buffer, 0, len);
+    if (len < RESET_FLAGS_LEN)
+    {
+        return;
+    }
+
+    read_all();
+    os_memcpy(&rbuffer[RESET_FLAGS_OFFSET], buffer, RESET_FLAGS_LEN);
+    
+    spi_flash_erase_protect_disable();
+    spi_flash_erase_sector(BASIC_PARAM_SEC + USER_PARAM_BASIC);
+    
+    spi_flash_erase_sector(BASIC_PARAM_SEC + USER_PARAM_BASIC);
+    spi_flash_write((BASIC_PARAM_SEC + USER_PARAM_BASIC) * SPI_FLASH_SEC_SIZE,
+            	    rbuffer, sizeof(rbuffer));
+}
+
+static void ICACHE_FLASH_ATTR read_all(void)
+{    
     spi_flash_read((BASIC_PARAM_SEC + USER_PARAM_BASIC) * SPI_FLASH_SEC_SIZE,
-                   (unsigned int *)buffer, 256);
+                   (unsigned int *)rbuffer, sizeof(rbuffer));
+    
 }

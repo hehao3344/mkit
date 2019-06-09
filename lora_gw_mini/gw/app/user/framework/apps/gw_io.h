@@ -3,10 +3,12 @@
 
 #include "../../../include/driver/key.h"
 
+typedef void (* key_press_function)(void);
 
-// gpio0  key
-// gpio5  system status
-// gpio16 wifi   status
+// gpio0  key               ---- 长按恢复缺省参数
+// gpio5  system status     ---- 收到包闪100ms
+// gpio16 wifi   status     ---- smartconfig状态1s亮1s灭 正常3s灭100ms亮 否则快闪
+
 // gpio4  sx1278 irq status
 // gpio2  crst
 
@@ -46,7 +48,7 @@
 #define GW_SX1278_MISO_IO_NUM    12
 #define GW_SX1278_MISO_IO_FUNC   FUNC_GPIO12
 
-void ICACHE_FLASH_ATTR gw_io_init(void);
+void ICACHE_FLASH_ATTR gw_io_init(key_press_function short_press, key_press_function long_press);
 void ICACHE_FLASH_ATTR gw_io_status_output(uint8 on_off);
 void ICACHE_FLASH_ATTR gw_io_wifi_output(uint8 on_off);
 void ICACHE_FLASH_ATTR gw_io_sx1278_rst_output(uint8 on_off);

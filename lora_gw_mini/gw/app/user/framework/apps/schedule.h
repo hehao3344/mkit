@@ -12,8 +12,8 @@ extern "C"
 #define SCH_PROC_TASK_PRIO          0
 #define SCH_PROC_TASK_QUEUE_LEN     4 // wifi+ntp
 
-boolean schedule_create( uint16 smart_config );
-void    schedule_destroy( void );
+boolean schedule_create(uint16 smart_config);
+void    schedule_destroy(void);
 
 #ifdef __cplusplus
 }

@@ -9,7 +9,7 @@ void main( void )
     
     while( 1 )
     {
-        sys_mgr_send_msg();          // 每500ms发送一次            
+        sys_mgr_send_msg();
     }
 }
 

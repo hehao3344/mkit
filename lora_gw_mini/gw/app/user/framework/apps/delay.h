@@ -9,12 +9,7 @@ extern "C"
 {
 #endif
 
-boolean delay_create( void );
-void    delay_set( uint32 sys_sec, uint32 sec );
-void    delay_get( uint32 sys_sec, uint32 *cur, uint32 *total );
-uint32  delay_get_end( void );
-boolean delay_now_is_in_delay( uint32 cur_sec );
-void    delay_destroy( void);
+void os_delay_ms(unsigned int value);
 
 #ifdef __cplusplus
 }

@@ -54,6 +54,7 @@ COMPONENTS_eagle.app.v6 = \
 	user/framework/device/libdevice.a	\
 	user/framework/network/libnetwork.a	\
 	user/framework/tcp/libtcp.a	\
+	user/framework/protocol/libprotocol.a \
 	user/framework/crypto/libcrypto.a \
 	driver/libdriver.a	\
 	user/libuser.a
@@ -82,6 +83,7 @@ LINKFLAGS_eagle.app.v6 = \
 	-lssl	\
 	-lpwm	\
 	-lsmartconfig \
+	-lairkiss \
 	$(DEP_LIBS_eagle.app.v6)					\
 	-Wl,--end-group
 

@@ -6,27 +6,27 @@
 #endif
 
 
-// ²å×ù¹Ü½Å¶¨Òå
+// æ’åº§ç®¡è„šå®šä¹‰
 // MISO         PC7
 // MOSI         PC6
 // SCK          PC5
-// NSS(SPI_CS)  PC4 
+// NSS(SPI_CS)  PC4
 
 // CE_RST       PC3
 // IRQ_DID0     PC2
 
-// ÆäËûÒý½Å 
-// °´¼ü         PB7
-// ×´Ì¬         PD0
-// ¿ª¹Ø         PB6
+// å…¶ä»–å¼•è„š
+// æŒ‰é”®         PB7
+// çŠ¶æ€         PD0
+// å¼€å…³         PB6
 
 static void clock_config(uint8 sys_clk);
 
-// ³õÊ¼»¯ÏµÍ³Ê±ÖÓ
+// åˆå§‹åŒ–ç³»ç»Ÿæ—¶é’Ÿ
 void system_config_clk_init(void)
 {
-    //clock_config(16); // ÄÚ²¿Ê±ÖÓ16M    
-    clock_config(8); // ÄÚ²¿Ê±ÖÓ8M
+    //clock_config(16); // å†…éƒ¨æ—¶é’Ÿ16M
+    clock_config(8); // å†…éƒ¨æ—¶é’Ÿ8M
 
 #if 0
     CLK_DeInit();
@@ -37,19 +37,18 @@ void system_config_clk_init(void)
 #endif
 }
 
-// ³õÊ¼»¯GPIO
+// åˆå§‹åŒ–GPIO
 void system_config_gpio_config(void)
 {
-
     GPIO_DeInit(GPIOB);
     GPIO_DeInit(GPIOC);
     GPIO_DeInit(GPIOD);
     // GPIO_DeInit(GPIOE);
 
-    // ÖÐ¶ÏÒý½Å Ã»ÓÃµ½ÖÐ¶Ï Ö»ÓÃµ½ÁËµçÆ½ÅÐ¶Ï
-    // GPIO_Init(GPIOC, GPIO_PIN_2, GPIO_MODE_IN_PU_NO_IT);          
+    // ä¸­æ–­å¼•è„š æ²¡ç”¨åˆ°ä¸­æ–­ åªç”¨åˆ°äº†ç”µå¹³åˆ¤æ–­
+    // GPIO_Init(GPIOC, GPIO_PIN_2, GPIO_MODE_IN_PU_NO_IT);
     GPIO_Init(GPIOC, GPIO_PIN_2, GPIO_MODE_IN_PU_IT);         // GIO0
-    EXTI_SetExtIntSensitivity(EXTI_PORT_GPIOC, EXTI_SENSITIVITY_RISE_ONLY); 
+    EXTI_SetExtIntSensitivity(EXTI_PORT_GPIOC, EXTI_SENSITIVITY_RISE_ONLY);
 
     // EXTI_SetTLISensitivity(EXTI_TLISENSITIVITY_FALL_ONLY);
 
@@ -60,56 +59,59 @@ void system_config_gpio_config(void)
     GPIO_Init(GPIOC, GPIO_PIN_7, GPIO_MODE_IN_PU_NO_IT);      // SDO
 
 
-    // ²å×ù×´Ì¬ ºÍ ²å×ù¼ÌµçÆ÷¿ØÖÆ
-    GPIO_Init(GPIOD, GPIO_PIN_0, GPIO_MODE_OUT_PP_HIGH_FAST); // ÊÇ·ñÊÕµ½ÐÅºÅ ×´Ì¬
-    GPIO_Init(GPIOB, GPIO_PIN_6, GPIO_MODE_OUT_PP_LOW_FAST); // ¼ÌµçÆ÷  ±ØÐëÉèÖÃÎªµÍµçÆ½ ·ñÔò»áÒ»ÉÏµç ¼ÌµçÆ÷¾ÍÊÇ¿ªµÄ×´Ì¬
+    GPIO_Init(GPIOB, GPIO_PIN_2, GPIO_MODE_OUT_PP_LOW_FAST); // ç»§ç”µå™¨  å¿…é¡»è®¾ç½®ä¸ºä½Žç”µå¹³ å¦åˆ™ä¼šä¸€ä¸Šç”µ ç»§ç”µå™¨å°±æ˜¯å¼€çš„çŠ¶æ€
 
-    // GPIO_Init(GPIOB, GPIO_PIN_7, GPIO_MODE_IN_PU_NO_IT);      // °´¼ü Ã¿°´Ò»´Î ·­×ªÒ»´Î
-    GPIO_Init(GPIOB, GPIO_PIN_7, GPIO_MODE_IN_PU_IT);
-    EXTI_SetExtIntSensitivity(EXTI_PORT_GPIOB, EXTI_SENSITIVITY_RISE_FALL); // EXTI_SENSITIVITY_RISE_ONLY); 
+    // æ’åº§çŠ¶æ€ å’Œ æ’åº§ç»§ç”µå™¨æŽ§åˆ¶
+    GPIO_Init(GPIOD, GPIO_PIN_0, GPIO_MODE_OUT_PP_HIGH_FAST); // æ˜¯å¦æ”¶åˆ°ä¿¡å· çŠ¶æ€
+
+    // GPIO_Init(GPIOB, GPIO_PIN_7, GPIO_MODE_IN_PU_NO_IT);      // æŒ‰é”® æ¯æŒ‰ä¸€æ¬¡ ç¿»è½¬ä¸€æ¬¡
+    GPIO_Init(GPIOB, GPIO_PIN_3, GPIO_MODE_IN_PU_IT);
+    EXTI_SetExtIntSensitivity(EXTI_PORT_GPIOB, EXTI_SENSITIVITY_RISE_FALL); // EXTI_SENSITIVITY_RISE_ONLY);
     // EXTI_SetTLISensitivity(EXTI_TLISENSITIVITY_RISE_ONLY);
 
-    //GPIO_WriteHigh(GPIOB, GPIO_PIN_6);
-    //GPIO_WriteLow(GPIOB, GPIO_PIN_6);
-    
-    GPIO_WriteHigh(GPIOD, GPIO_PIN_0);
-    GPIO_WriteLow(GPIOD, GPIO_PIN_0);    
-    
-    //GPIO_Init(GPIOB, GPIO_PIN_7, GPIO_MODE_IN_PU_NO_IT);      // SDO
-    
-#if 0    
+
+    /* ç»§ç”µå™¨ */
+    //GPIO_WriteHigh(GPIOB, GPIO_PIN_2);
+
+    /* ç»§ç”µå™¨ */
+    //GPIO_WriteHigh(GPIOD, GPIO_PIN_0);
+    //GPIO_WriteLow(GPIOD, GPIO_PIN_0);
+
+
+
+#if 0
     GPIO_DeInit(GPIOA);
     GPIO_DeInit(GPIOB);
-    GPIO_DeInit(GPIOC);    
+    GPIO_DeInit(GPIOC);
     GPIO_DeInit(GPIOD);
-    GPIO_DeInit(GPIOE);    
-    
+    GPIO_DeInit(GPIOE);
+
     GPIO_Init(GPIOC, GPIO_PIN_3, GPIO_MODE_OUT_PP_HIGH_FAST); //RESET
 
-    GPIO_Init(GPIOC, GPIO_PIN_5, GPIO_MODE_OUT_PP_LOW_FAST);  //SCK    
+    GPIO_Init(GPIOC, GPIO_PIN_5, GPIO_MODE_OUT_PP_LOW_FAST);  //SCK
     GPIO_Init(GPIOC, GPIO_PIN_7, GPIO_MODE_IN_PU_NO_IT);      //SDO
     GPIO_Init(GPIOC, GPIO_PIN_6, GPIO_MODE_OUT_PP_HIGH_FAST); //SDI
     GPIO_Init(GPIOF, GPIO_PIN_4, GPIO_MODE_OUT_PP_HIGH_FAST); //CS
-   
+
     GPIO_Init(GPIOC, GPIO_PIN_4, GPIO_MODE_IN_PU_IT);         //GIO0
     EXTI_SetExtIntSensitivity(EXTI_PORT_GPIOC,EXTI_SENSITIVITY_RISE_ONLY); // Interrupt on Rising edge only
     EXTI_SetTLISensitivity(EXTI_TLISENSITIVITY_FALL_ONLY);
-   
-    GPIO_Init(GPIOD, GPIO_PIN_6, GPIO_MODE_OUT_PP_HIGH_FAST); // ¼ÌµçÆ÷
-    GPIO_Init(GPIOD, GPIO_PIN_7, GPIO_MODE_OUT_PP_HIGH_FAST); // ÊÇ·ñÊÕµ½ÐÅºÅ
-    GPIO_Init(GPIOD, GPIO_PIN_5, GPIO_MODE_IN_PU_NO_IT);      // °´¼ü Ã¿°´Ò»´Î ·­×ªÒ»´Î
+
+    GPIO_Init(GPIOD, GPIO_PIN_6, GPIO_MODE_OUT_PP_HIGH_FAST); // ç»§ç”µå™¨
+    GPIO_Init(GPIOD, GPIO_PIN_7, GPIO_MODE_OUT_PP_HIGH_FAST); // æ˜¯å¦æ”¶åˆ°ä¿¡å·
+    GPIO_Init(GPIOD, GPIO_PIN_5, GPIO_MODE_IN_PU_NO_IT);      // æŒ‰é”® æ¯æŒ‰ä¸€æ¬¡ ç¿»è½¬ä¸€æ¬¡
 #endif
 }
 
 /*******************************************************************************
-º¯Êý¹¦ÄÜ£ºÏµÍ³ÄÚ²¿Ê±ÖÓÅäÖÃ
-ÊäÈë²ÎÊý£ºSYS_CLK : 2¡¢4¡¢8¡¢16
-Êä³ö²ÎÊý£ºÎÞ
-±¸    ×¢£ºÏµÍ³Æô¶¯Ä¬ÈÏÄÚ²¿2£Í£È£Ú
+å‡½æ•°åŠŸèƒ½ï¼šç³»ç»Ÿå†…éƒ¨æ—¶é’Ÿé…ç½®
+è¾“å…¥å‚æ•°ï¼šSYS_CLK : 2ã€4ã€8ã€16
+è¾“å‡ºå‚æ•°ï¼šæ— 
+å¤‡    æ³¨ï¼šç³»ç»Ÿå¯åŠ¨é»˜è®¤å†…éƒ¨2ï¼­ï¼¨ï¼º
 *******************************************************************************/
 static void clock_config(uint8 sys_clk)
 {
-   // Ê±ÖÓÅäÖÃÎªÄÚ²¿RC£¬16M
+   // æ—¶é’Ÿé…ç½®ä¸ºå†…éƒ¨RCï¼Œ16M
    CLK->CKDIVR &= ~ (BIT(4)|BIT(3));
 
    switch(sys_clk)
