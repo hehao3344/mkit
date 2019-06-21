@@ -52,7 +52,7 @@ int protocol_handle_cmd(char * buf, char len)
     /* 比较mac地址 */
     if (NULL != cmd_cb)
     {
-        cmd_cb(&buf[4], buf[3], buf[10]);
+        cmd_cb(&buf[4], buf[3], buf[8]);
     }
 
     return 0;
@@ -73,13 +73,13 @@ char * protocol_switch_cmd(char * mac, char on_off)
     send_buffer[2] = MSG_FROM_CC;       /* 下行 */
     send_buffer[3] = E_SWITCH_ON_OFF;   /* */
 
-    /* mac地址为6字节 */
-    for (i=0; i<6; i++)
+    /* mac地址为4字节 */
+    for (i=0; i<ADDRESS_LENGTH; i++)
     {
         send_buffer[4+i] = mac[i];
     }
 
-    send_buffer[10] = on_off;
+    send_buffer[8] = on_off;
 
     /* 计算checksum */
     for (i=1; i<(send_buffer[1]); i++)
@@ -107,11 +107,11 @@ char * protocol_match_cmd(int payload)
     send_buffer[3] = E_SWITCH_MATCH;    /* */
 
     /* mac地址为6字节 */
-    for (i=0; i<6; i++)
+    for (i=0; i<ADDRESS_LENGTH; i++)
     {
         send_buffer[4+i] = 0xFF;
     }
-    send_buffer[10] = payload;
+    send_buffer[8] = payload;
 
     /* 计算checksum */
     for (i=1; i<send_buffer[1]; i++)
@@ -139,13 +139,13 @@ char * protocol_get_property(char * mac)
     send_buffer[3] = 0x03;              /* cmd */
 
     /* mac地址为6字节 */
-    for (i=0; i<6; i++)
+    for (i=0; i<ADDRESS_LENGTH; i++)
     {
         send_buffer[4+i] = mac[i];
     }
 
     /* 14 字节 */
-    send_buffer[10] = 0;   /* 0 关 1 开 */
+    send_buffer[8] = 0;   /* 0 关 1 开 */
 
     /* 计算checksum */
     for (i=1; i<PACKET_LEN; i++)

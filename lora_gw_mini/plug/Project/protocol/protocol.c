@@ -2,9 +2,9 @@
 
 static char send_buffer[PACKET_LEN];
 
-// 当前协议长度为12字节
-// 1字节    1字节    1字节     1字节  6字节    1字节      1字节
-// 0xA5     len    direction    cmd    mac    payload    checksum
+// v2.0 当前协议长度为10字节
+// 1字节    1字节    1字节     1字节       4字节              1字节      1字节
+// 0xA5     len    direction    cmd     1type+3addr          payload    checksum
 
 cmb_handle_cb cmd_cb = NULL;
 
@@ -42,14 +42,14 @@ int protocol_handle_cmd(char * buf, char len)
     /* 比较mac地址 */
     if (NULL != cmd_cb)
     {
-        cmd_cb(&buf[4], buf[3], buf[10]);
+        cmd_cb(&buf[ADDRESS_LENGTH], buf[3], buf[8]);
     }
 
     return 0;
 }
 
 //0x01：打开/关闭插座
-char * protocol_switch_resp(char * mac, char on_off)
+char * protocol_switch_resp(char * address, char on_off)
 {
     char i;
     char check_sum = 0;
@@ -59,18 +59,18 @@ char * protocol_switch_resp(char * mac, char on_off)
     }
 
     send_buffer[0] = 0xA5;
-    send_buffer[1] = (PACKET_LEN - 2); /* 减去2是不包括0xA5 和 len */
-    send_buffer[2] = MSG_FROM_DEV;                 /* 上行 */
+    send_buffer[1] = (PACKET_LEN - 2);  /* 减去2是不包括0xA5 和 len */
+    send_buffer[2] = MSG_FROM_DEV;      /* 上行 */
     send_buffer[3] = E_SWITCH_ON_OFF;
 
-    /* mac地址为6字节 */
-    for (i=0; i<6; i++)
+    /* 地址为4字节 */
+    for (i=0; i<ADDRESS_LENGTH; i++)
     {
-        send_buffer[4+i] = mac[i];
+        send_buffer[4+i] = address[i];
     }
 
     /* 第10 字节 */
-    send_buffer[10] = on_off;
+    send_buffer[8] = on_off;
 
     /* 计算checksum */
     for (i=1; i<(PACKET_LEN-2); i++)
@@ -83,7 +83,7 @@ char * protocol_switch_resp(char * mac, char on_off)
 }
 
 //0x03：获取子设备属性
-char * protocol_get_property_resp(char * mac, char on_off)
+char * protocol_get_property_resp(char * address, char on_off)
 {
     char i;
     char check_sum = 0;
@@ -97,14 +97,14 @@ char * protocol_get_property_resp(char * mac, char on_off)
     send_buffer[2] = MSG_FROM_DEV;          /* 上行 */
     send_buffer[3] = E_SWITCH_GET_PARAM;    /* cmd */
 
-    /* mac地址为6字节 */
-    for (i=0; i<6; i++)
+    /* 地址为4字节 */
+    for (i=0; i<ADDRESS_LENGTH; i++)
     {
-        send_buffer[4+i] = mac[i];
+        send_buffer[4+i] = address[i];
     }
 
     /* 字节 */
-    send_buffer[10] = on_off;   /* 0 关 1 开 */
+    send_buffer[8] = on_off;   /* 0 关 1 开 */
 
     /* 计算checksum */
     for (i=1; i<(PACKET_LEN-2); i++)
@@ -118,7 +118,7 @@ char * protocol_get_property_resp(char * mac, char on_off)
 
 
 //0x10：周期性上报消息
-char * protocol_get_period_msg(char * mac, char on_off)
+char * protocol_get_period_msg(char * address, char on_off)
 {
     char i;
     char check_sum = 0;
@@ -132,14 +132,14 @@ char * protocol_get_period_msg(char * mac, char on_off)
     send_buffer[2] = MSG_FROM_DEV;              /* 上行 */
     send_buffer[3] = E_SWITCH_REPORT_MSG;       /* cmd */
 
-    /* mac地址为6字节 */
-    for (i=0; i<6; i++)
+    /* address地址为4字节 */
+    for (i=0; i<ADDRESS_LENGTH; i++)
     {
-        send_buffer[4+i] = mac[i];
+        send_buffer[4+i] = address[i];
     }
 
     /* 10 字节 */
-    send_buffer[10] = on_off;   /* 0 关 1 开 */
+    send_buffer[8] = on_off;   /* 0 关 1 开 */
 
     /* 计算checksum */
     for (i=1; i<(PACKET_LEN-2); i++)

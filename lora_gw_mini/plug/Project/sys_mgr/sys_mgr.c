@@ -15,7 +15,7 @@
 
 static uint8  pre_send_on_off   = 0;
 static uint8  switch_on_off     = 0;
-static char  device_mac[6]      = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+static char   dev_address[4]    = {0xFF, 0xFF, 0xFF, 0xFF};
 static uint8  trigger_report    = 0;
 static uint8  trigger_on_off_response  = 0;
 static uint8  trigger_get_param_response  = 0;
@@ -38,11 +38,11 @@ void sys_mgr_init(void)
 
     flash_eeprom_init();
 
-    crypto_api_cbc_set_key(KEY_PASSWORD, strlen(KEY_PASSWORD));
+    //crypto_api_cbc_set_key(KEY_PASSWORD, strlen(KEY_PASSWORD));
 
     sx1276_hal_set_recv_cb(recv_data_fn);
 
-    flash_eeprom_read_buf(0x00, (uint8 *)device_mac, 6);
+    flash_eeprom_read_buf(0x00, (uint8 *)dev_address, 4);
 
     sx1276_hal_register_rf_func();
 
@@ -64,26 +64,28 @@ void sys_mgr_send_msg(void)
     uint8 send_flags  = 0;
     uint32 timer3_ms  = 0;                  // 发送周期计时器
     timer3_ms         = time1_get_value(0); // 定时器0
-    char enc_buf[PACKET_LEN] = {0};
+
+    //char enc_buf[PACKET_LEN] = {0};
+
     char * resp = NULL;
-    
-    if ((timer3_ms >= 5000) || (1 == trigger_report))
+
+    if ((timer3_ms >= 15000) || (1 == trigger_report))
     {
         pre_send_on_off = switch_on_off;
-        resp = protocol_get_period_msg(device_mac, switch_on_off);
+        resp = protocol_get_period_msg(dev_address, switch_on_off);
         trigger_report = 0;
         send_flags = 1;
         time1_set_value(0, 0);
     }
     else if (1 == trigger_on_off_response)
     {
-        resp = protocol_switch_resp(device_mac, switch_on_off);
+        resp = protocol_switch_resp(dev_address, switch_on_off);
         send_flags = 1;
         trigger_on_off_response = 0;
     }
     else if (1 == trigger_get_param_response)
     {
-        resp = protocol_get_property_resp(device_mac, switch_on_off);
+        resp = protocol_get_property_resp(dev_address, switch_on_off);
         send_flags = 1;
         trigger_get_param_response = 0;
     }
@@ -98,11 +100,13 @@ void sys_mgr_send_msg(void)
             timer3_ms = time1_get_value(0); // 定时器0
         }
 
-        memcpy(enc_buf, resp, PACKET_LEN);
-        crypto_api_encrypt_buffer((char *)enc_buf, sizeof(enc_buf));
+        //memcpy(enc_buf, resp, PACKET_LEN);
+        //crypto_api_encrypt_buffer((char *)enc_buf, sizeof(enc_buf));
+        //sx1276_hal_rf_send_packet((uint8 *)enc_buf, sizeof(enc_buf));
 
-        sx1276_hal_rf_send_packet((uint8 *)enc_buf, sizeof(enc_buf));
-        
+        /* 不使用加密 */
+        sx1276_hal_rf_send_packet((uint8 *)enc_buf, PACKET_LEN);
+
         for(j=0; j<20; j++)
         {
             if (1 == sx1276_hal_get_send_flags())
@@ -112,7 +116,7 @@ void sys_mgr_send_msg(void)
             delay_ms(50);
         }
         sx1276_hal_set_send_flags(1);
-        
+
         /* 闪烁三次 */
         for (i=0; i<3; i++)
         {
@@ -125,19 +129,25 @@ void sys_mgr_send_msg(void)
         if (pre_send_on_off != switch_on_off)
         {
             trigger_report = 1;
-        }     
-        trigger_on_off_response = 0;  
+        }
+        trigger_on_off_response = 0;
     }
 }
 
 static void recv_data_fn(char *buffer, unsigned short len)
 {
-    char packet[PACKET_LEN];
-    if ((len > 0) && (len <= PACKET_LEN) && (0 == len%VALID_PACKET_LEN))
+    //char packet[PACKET_LEN];
+
+    //if ((len > 0) && (len <= PACKET_LEN) && (0 == len%VALID_PACKET_LEN))
+
+    if ((len > 0) && (len == PACKET_LEN))
     {
-        memcpy(packet, buffer, PACKET_LEN);
-        crypto_api_decrypt_buffer(packet, len);
-        protocol_handle_cmd(packet, len);
+        //memcpy(packet, buffer, PACKET_LEN);
+        //crypto_api_decrypt_buffer(packet, len);
+        //protocol_handle_cmd(packet, len);
+
+        protocol_handle_cmd(buffer, len);
+
     }
 }
 
@@ -159,9 +169,9 @@ void sys_mgr_handle_key(void)
 #if WRITE_MAC
 void sys_mgr_write_mac(void)
 {
-    uint8 mac[6] = {0x5A, 0x5A, 0x00, 0x00, 0x00, 0x00, 01};
+    uint8 address[6] = {0x02, 0x00, 0x00, 0x01};
     flash_eeprom_init();
-    flash_eeprom_write(1, mac, 6);
+    flash_eeprom_write(1, address, 4);
 }
 #endif
 
@@ -175,9 +185,14 @@ static void delay_ms(uint32 ms)
     }
 }
 
-static void handle_cb(char * mac, char cmd, char value)
+static void handle_cb(char * addr, char cmd, char value)
 {
     /* 先要比较下 mac是否为本设备的mac */
+    if (0 != memcmp(dev_address, addr, ADDRESS_LENGTH))
+    {
+        return;
+    }
+
     switch(cmd)
     {
         case E_SWITCH_ON_OFF:

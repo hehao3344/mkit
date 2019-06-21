@@ -29,10 +29,8 @@ typedef struct _TCP_CLIENT_OBJECT
     boolean proxy_is_handle;
     boolean proxy_connected;
 
-    //int8 inform_buf[64];
     char reg_buf[256];
-       
-    
+
     char cur_dev_uuid[20];
     int8 mac[40];
     int  req_id;
@@ -107,8 +105,7 @@ boolean ICACHE_FLASH_ATTR tcp_client_create(void)
     }
     handle->mac[12] = 0;
 
-    // os_sprintf(handle->inform_buf,  "{\"device\":\"%s\"}\n", handle->mac);
-    os_sprintf(handle->reg_buf, DEV_REGISTER_MSG, "10", handle->mac, 100, VER_MAJOR, VER_MINOR);
+    os_sprintf(handle->reg_buf, DEV_REGISTER_MSG, "10", handle->mac, 10000, VER_MAJOR, VER_MINOR);
 
     os_printf("get mac %s %s\n", handle->mac, handle->reg_buf);
 
@@ -119,7 +116,7 @@ boolean ICACHE_FLASH_ATTR tcp_client_create(void)
 
     os_timer_disarm(&handle->register_timer);
     os_timer_setfn(&handle->register_timer, (os_timer_func_t *)register_center, handle);
-    os_timer_arm(&handle->register_timer, 2000, 1);
+    os_timer_arm(&handle->register_timer, 1000, 1);
 
     os_printf("[tcp client] create ok \n");
     return TRUE;
@@ -329,7 +326,7 @@ static void ICACHE_FLASH_ATTR register_center(void *arg)
 
     if (handle->proxy_connected)
     {
-        if (0 == handle->count%5)
+        if (0 == handle->count%15)
         {
             if (strlen(handle->reg_buf) > 0)
             {
@@ -351,7 +348,6 @@ LOCAL void ICACHE_FLASH_ATTR proxy_recv(void *arg, char *buffer, unsigned short 
         handle->cb(handle->arg, buffer, length);
 
         //struct upgrade_server_info *server = NULL;
-
         //        server = (struct upgrade_server_info *)os_zalloc(sizeof(struct upgrade_server_info));
         //        os_memcpy(server->upgrade_version, pstr + 12, 16);
         //        server->upgrade_version[15] = '\0';
@@ -535,7 +531,7 @@ LOCAL int ICACHE_FLASH_ATTR msg_parse(struct jsontree_context *js_ctx, struct js
                 server = (struct upgrade_server_info *)os_zalloc(sizeof(struct upgrade_server_info));
                 os_memcpy(server->upgrade_version, "V2.00", 4);
                 server->upgrade_version[15] = '\0';
-                
+
                 //os_sprintf(server->pre_version,"%s%d.%d.%dt%d(%s)", VERSION_TYPE,IOT_VERSION_MAJOR,
                 //    	     IOT_VERSION_MINOR, IOT_VERSION_REVISION, device_type, UPGRADE_FALG);
                 user_esp_platform_upgrade_begin(&handle->proxy_svr_conn, server);

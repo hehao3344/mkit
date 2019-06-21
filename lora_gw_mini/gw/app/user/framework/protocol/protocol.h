@@ -1,7 +1,8 @@
 #ifndef __PROTOCOL_H
 #define __PROTOCOL_H
 
-#define PACKET_LEN      16
+#define PACKET_LEN      10
+#define ADDRESS_LENGTH  4
 
 #define MSG_FROM_DEV    2   /* 消息来自设备 */
 #define MSG_FROM_CC     1   /* 消息来自中控 */
@@ -14,8 +15,13 @@ typedef enum
     E_SWITCH_REPORT_MSG = 0x10
 } E_CMD;
 
-// 1字节    1字节    1字节     1字节  6字节    1字节    4字节      1字节
-// 0xA5     len    direction    cmd    mac    payload  reserved  checksum
+// v1.0 当前协议长度为12字节
+// 1字节    1字节    1字节     1字节       6字节       4字节     1字节      1字节
+// 0xA5     len    direction    cmd         mac         ts    payload    checksum
+
+// v2.0 当前协议长度为10字节
+// 1字节    1字节    1字节     1字节       4字节              1字节      1字节
+// 0xA5     len    direction    cmd     1type+3addr          payload    checksum
 
 
 //说明: len表示从direction到checksum的长度；

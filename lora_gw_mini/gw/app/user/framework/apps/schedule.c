@@ -17,8 +17,11 @@
 #include "../device/sx1276_hal.h"
 #include "../network/wifi.h"
 #include "../tcp/tcp_client.h"
-#include "../crypto/crypto_api.h"
-#include "../crypto/packet.h"
+#include "json_handle.h"
+
+//#include "../crypto/crypto_api.h"
+//#include "../crypto/packet.h"
+
 #include "../protocol/protocol.h"
 #include "json_format.h"
 #include "delay.h"
@@ -38,10 +41,7 @@ typedef struct _SCHEDULE_OBJECT
     // system timer.
     uint32     sys_sec;
     os_timer_t sys_timer;
-
-    char cc_mac[DEV_MAC_LEN];       /* 中控的mac地址 */
-    
-    char dev_mac[DEV_MAC_LEN];      /* 设备的MAC地址 */
+    char cc_mac[CC_MAC_LEN];       /* 中控的mac地址 */
     DEV_PARAM dev_param[MAX_DEV_COUNT];
 
     // 3 secs off - 100 ms on - ok
@@ -69,17 +69,20 @@ static void ICACHE_FLASH_ATTR key_short_press(void);
 static void ICACHE_FLASH_ATTR tcp_client_recv_data_callback(void *arg, char *buffer, unsigned short length);
 static void ICACHE_FLASH_ATTR recv_data_fn(char *buffer, unsigned short len);
 static void ICACHE_FLASH_ATTR protocol_handle_data_cb(char * mac, char cmd, char value);
+static void (* json_msg_parse_fn)(void * arg, E_JSON_CMD e_cmd, int int_param, char * char_param);
 
 boolean ICACHE_FLASH_ATTR schedule_create(uint16 smart_config)
-{    
+{
     SCHEDULE_OBJECT * handle = instance();
 
-    
+
     os_printf("[schedule] start \n");
-    
+
     gw_io_init(key_short_press, key_long_press);
 
     protocol_set_cb(protocol_handle_data_cb);
+
+    json_handle_set_callback(json_msg_parse_fn, handle);
 
     gw_io_status_output(1);
 
@@ -92,29 +95,26 @@ boolean ICACHE_FLASH_ATTR schedule_create(uint16 smart_config)
     char mac[24] = {0};
     wifi_get_macaddr(STATION_IF, mac);
 
-  	os_sprintf(handle->dev_mac, MACSTR, MAC2STR(mac));
+  	os_sprintf(handle->cc_mac, MACSTR, MAC2STR(mac));
 
     uint8 i, j;
 
     for (i=0,j=0; i<6;)
     {
-        handle->dev_mac[i]   = handle->dev_mac[j];
-        handle->dev_mac[i+1] = handle->dev_mac[j+1];
+        handle->cc_mac[i]   = handle->cc_mac[j];
+        handle->cc_mac[i+1] = handle->cc_mac[j+1];
         i += 2;
         j += 3;
     }
     handle->dev_mac[12] = 0;
 
-#if 1
-    flash_param_get_cc_mac(handle->cc_mac, sizeof(handle->cc_mac));
     for (i=0; i<MAX_DEV_COUNT; i++)
     {
         os_memset(handle->dev_param[i].mac, 0, sizeof(handle->dev_param[i].mac));
         flash_param_get_dev_mac(i, handle->dev_param[i].mac, sizeof(handle->dev_param[i].mac));
     }
-#endif
 
-    crypto_api_cbc_set_key(KEY_PASSWORD, strlen(KEY_PASSWORD));
+    //crypto_api_cbc_set_key(KEY_PASSWORD, strlen(KEY_PASSWORD));
 
     os_timer_disarm(&handle->sys_timer);
     os_timer_setfn(&handle->sys_timer, (os_timer_func_t *)system_timer_center, handle);
@@ -166,7 +166,9 @@ static void ICACHE_FLASH_ATTR tcp_client_recv_data_callback(void *arg, char *buf
     }
 
     os_printf("receive len:%d msg:%s \n", length, buffer);
-    
+    json_handle_handle_data(buffer, (int)length);
+
+#if 0
     int i;
     // 测试版本 后期需要注意的是 一包发送完毕 等待发送中断收到才能发送下一包
     for(i=0; i<1; i++)
@@ -174,22 +176,23 @@ static void ICACHE_FLASH_ATTR tcp_client_recv_data_callback(void *arg, char *buf
         int dst_on_off = 0;
         if (NULL != os_strstr(buffer, "on"))
         {
-            dst_on_off = 1;         
+            dst_on_off = 1;
         }
-        
+
         os_printf("setting switch to %d \n", dst_on_off);
-        
+
         char * buf = protocol_switch_cmd(handle->dev_param[i].mac, (char)dst_on_off);
 
         /* 注意 buf len的长度为16字节 */
-        
-        int j;
-        char send_buf[PACKET_LEN];        
-        os_memcpy(send_buf, buf, sizeof(send_buf));
- 
-        crypto_api_encrypt_buffer(send_buf, sizeof(send_buf));
 
-        sx1276_hal_send(send_buf, sizeof(send_buf));
+        int j;
+
+        //char send_buf[PACKET_LEN];
+        //os_memcpy(send_buf, buf, sizeof(send_buf));
+        //crypto_api_encrypt_buffer(send_buf, sizeof(send_buf));
+        //sx1276_hal_send(send_buf, sizeof(send_buf));
+
+        sx1276_hal_send(buf, PACKET_LEN);
 
         for(j=0; j<200; j++)
         {
@@ -203,7 +206,8 @@ static void ICACHE_FLASH_ATTR tcp_client_recv_data_callback(void *arg, char *buf
         }
         sx1276_hal_set_send_flags(1);
     }
-    
+#endif
+
 }
 
 static void system_timer_center( void *arg )
@@ -277,18 +281,19 @@ static void ICACHE_FLASH_ATTR key_short_press( void )
     for(i=0; i<1; i++)
     {
         int dst_on_off = (1 == handle->dev_param[i].on_off) ? 0 : 1;
-        
+
         char * buf = protocol_switch_cmd(handle->dev_param[i].mac, (char)dst_on_off);
 
         /* 注意 buf len的长度为16字节 */
-        
-        int j;
-        char send_buf[PACKET_LEN];        
-        os_memcpy(send_buf, buf, sizeof(send_buf));
- 
-        crypto_api_encrypt_buffer(send_buf, sizeof(send_buf));
 
-        sx1276_hal_send(send_buf, sizeof(send_buf));
+        int j;
+
+        //char send_buf[PACKET_LEN];
+        //os_memcpy(send_buf, buf, sizeof(send_buf));
+        //crypto_api_encrypt_buffer(send_buf, sizeof(send_buf));
+        //sx1276_hal_send(send_buf, sizeof(send_buf));
+
+        sx1276_hal_send(buf, PACKET_LEN);
 
         for(j=0; j<200; j++)
         {
@@ -316,13 +321,13 @@ static void ICACHE_FLASH_ATTR key_long_press( void )
 
 #if 1
     char reset_buf[RESET_FLAGS_LEN] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
-    
+
     flash_param_set_reset_flags(reset_buf, sizeof(reset_buf));
-    
+
     system_restore();
     system_restart();
 #endif
-    
+
 }
 
 static void ICACHE_FLASH_ATTR recv_data_fn(char * buffer, unsigned short len)
@@ -339,6 +344,7 @@ static void ICACHE_FLASH_ATTR recv_data_fn(char * buffer, unsigned short len)
 
     if (len > 0)
     {
+#if 0
         /* 1解码 */
         crypto_api_decrypt_buffer(buffer, len);
         os_printf("dec: \n");
@@ -347,38 +353,72 @@ static void ICACHE_FLASH_ATTR recv_data_fn(char * buffer, unsigned short len)
             os_printf("0x%x ", buffer[i]);
         }
         os_printf("\n");
+#endif
         /* 处理命令 */
+        //protocol_handle_cmd(buffer, len);
         protocol_handle_cmd(buffer, len);
-
-        //gw_io_wifi_output(0);
-        //os_delay_ms(50);
-        //gw_io_wifi_output(1);
     }
 }
 
-static void protocol_handle_data_cb(char * mac, char cmd, char value)
+static void protocol_handle_data_cb(char * address, char cmd, char value)
 {
     int i, j;
     int equal = 0;
     char upload_buf[512] = {0};
-    
+
     os_printf("protocol callback \n");
     SCHEDULE_OBJECT * handle = instance();
     switch(cmd)
     {
         case E_SWITCH_ON_OFF:
-            for (i=0; i<1; i++)
-            {
+
+#if 0
+#define UPLOAD_EVENT_MSG "{\
+\"method\":\"report_msg\",\
+\"cc_uuid\":\"%s%s\",\
+\"attr\":\
+{\
+\"cmd\":\"updata_status\",\
+\"dev1\":\
+{\
+\"dev_uuid\":\"%s\",\
+\"online\":\"%s\",\
+\"switch\":\"%s\",\
+},\
+\"dev2\":\
+{\
+\"dev_uuid\":\"%s\",\
+\"online\":\"%s\",\
+\"switch\":\"%s\"\
+},\
+\"dev3\":\
+{\
+\"dev_uuid\":\"%s\",\
+\"online\":\"%s\",\
+\"switch\":\"%s\",\
+},\
+\"dev4\":\
+{\
+\"dev_uuid\":\"%s\",\
+\"online\":\"%s\",\
+\"switch\":\"%s\",\
+}\
+}\
+}"
+#endif
                 os_printf("update on_off to %d \n", value);
-                handle->dev_param[i].on_off = value;
-  
-                os_sprintf(upload_buf, UPLOAD_EVENT_MSG, "10", handle->dev_mac, 
-                           handle->dev_mac, "yes", (1 == value) ? "on" : "off");
+                // 要更新
+                // handle->dev_param[i].on_off = value;
+
+                os_sprintf(upload_buf, UPLOAD_EVENT_MSG, address, handle->cc_mac,
+                           handle->dev_param[0].mac, (1 == handle->dev_param[0].status) ? "yes" : "no", (1 == handle->dev_param[0].on_off) ? "on" : "off",
+                           handle->dev_param[1].mac, (1 == handle->dev_param[1].status) ? "yes" : "no", (1 == handle->dev_param[1].on_off) ? "on" : "off",
+                           handle->dev_param[2].mac, (1 == handle->dev_param[2].status) ? "yes" : "no", (1 == handle->dev_param[2].on_off) ? "on" : "off",
+                           handle->dev_param[3].mac, (1 == handle->dev_param[3].status) ? "yes" : "no", (1 == handle->dev_param[3].on_off) ? "on" : "off");
                 os_printf("=== send msg %s \n", upload_buf);
                 tcp_client_send_msg(upload_buf, os_strlen(upload_buf));
-                
-                break; 
-            }   
+                break;
+            }
             break;
         case E_SWITCH_MATCH:
             break;
@@ -387,13 +427,146 @@ static void protocol_handle_data_cb(char * mac, char cmd, char value)
         case E_SWITCH_REPORT_MSG:
             for (i=0; i<1; i++)
             {
-                os_printf("update on_off to %d \n", value);                
+                os_printf("update on_off to %d \n", value);
                 handle->dev_param[i].on_off = value;
-                break; 
-            }  
+                break;
+            }
             // tcp_server_send_msg(handle->tmp_buf, (int)out_len);
             break;
         default:
             break;
+    }
+}
+
+static void (* json_msg_parse_fn)(void * arg, E_JSON_CMD e_cmd, int req_id, int int_param, char * char_param)
+{
+
+    switch(e_cmd)
+    {
+        case E_REGISTER_RESP:
+            os_printf("receive register response \n");
+            break;
+        case E_HEART_BEAT_RESP:
+            os_printf("receive heart beat response \n");
+            break;
+        case E_FW_UPGRADE_CMD:
+            os_printf("receive fw upgrade cmd \n");
+            break;
+        case E_SET_SWITCH_CMD:
+            int int_mac[DEV_MAC_LEN] = {0};
+            char c_mac[DEV_MAC_LEN] = {0};
+            char msg_buf[256] = {0};
+            os_printf("setting switch to %d \n", int_param);
+            if (4 == sscanf(char_param, "%02x%02x%02x%02x", &int_mac[0], &int_mac[1], &int_mac[2], &int_mac[3]))
+            {
+                os_printf("get mac %02x%02x%02x%02x\n", int_mac[0], int_mac[1], int_mac[2], int_mac[3]);
+                c_mac[0] = (char)int_mac[0];
+                c_mac[1] = (char)int_mac[1];
+                c_mac[2] = (char)int_mac[2];
+                c_mac[3] = (char)int_mac[3];
+            }
+            else
+            {
+                os_printf("invalid mac %s \n", char_param);
+            }
+
+            int i;
+            int index = -1;
+            for (i=0; i<ARRAY_SIZE(handle->dev_param); i++)
+            {
+                if (0 == os_memcmp(handle->dev_param[i].mac, c_mac, DEV_MAC_LEN))
+                {
+                    os_printf("find device %d \n", i);
+                    index = i;
+                    break;
+                }
+            }
+            if (-1 != index)
+            {
+                char * buf = protocol_switch_cmd(handle->dev_param[i].mac, (char)int_param);
+
+                int j;
+
+                sx1276_hal_send(buf, PACKET_LEN);
+
+                for(j=0; j<200; j++)
+                {
+                    if (1 == sx1276_hal_get_send_flags())
+                    {
+                        os_printf("ok send finish j=%d on_off to %d \n", j, int_param);
+                        handle->dev_param[i].on_off  = int_param;
+                        break;
+                    }
+                    os_delay_ms(50);
+                }
+                sx1276_hal_set_send_flags(1);
+                os_printf("receive set switch cmd \n");
+
+                os_sprintf(msg_buf, SET_SWITCH_RESP, address, handle->cc_mac,
+                           req_id, 0);
+                os_printf("=== send msg %s \n", msg_buf);
+                tcp_client_send_msg(msg_buf, os_strlen(msg_buf));
+            }
+            else
+            {
+                os_sprintf(msg_buf, SET_SWITCH_RESP, address, handle->cc_mac,
+                           req_id, -1);
+                os_printf("=== send msg %s \n", msg_buf);
+                tcp_client_send_msg(msg_buf, os_strlen(msg_buf));
+            }
+            break;
+        case E_GET_SUB_DEV_CMD:
+            char msg_buf[256] = {0};
+            os_printf("receive get sub device cmd \n");
+
+            int int_mac[DEV_MAC_LEN] = {0};
+            char c_mac[DEV_MAC_LEN] = {0};
+            char msg_buf[256] = {0};
+            os_printf("setting switch to %d \n", int_param);
+            if (4 == sscanf(char_param, "%02x%02x%02x%02x", &int_mac[0], &int_mac[1], &int_mac[2], &int_mac[3]))
+            {
+                os_printf("get mac %02x%02x%02x%02x\n", int_mac[0], int_mac[1], int_mac[2], int_mac[3]);
+                c_mac[0] = (char)int_mac[0];
+                c_mac[1] = (char)int_mac[1];
+                c_mac[2] = (char)int_mac[2];
+                c_mac[3] = (char)int_mac[3];
+            }
+            else
+            {
+                os_printf("invalid mac %s \n", char_param);
+            }
+
+            int i;
+            int index = -1;
+            for (i=0; i<ARRAY_SIZE(handle->dev_param); i++)
+            {
+                if (0 == os_memcmp(handle->dev_param[i].mac, c_mac, DEV_MAC_LEN))
+                {
+                    os_printf("find device %d \n", i);
+                    index = i;
+                    break;
+                }
+            }
+
+            handle->dev_param[i].mac
+
+            if (-1 != index)
+            {
+                os_sprintf(msg_buf, GET_SUB_DEV_PARAM_RESP, handle->dev_param[i].mac,
+                           req_id, 0, (1 == handle->dev_param[i].status) ? "yes" : "no", (1 == handle->dev_param[i].on_off) ? "on" : "off");
+                os_printf("=== send msg %s \n", msg_buf);
+                tcp_client_send_msg(msg_buf, os_strlen(msg_buf));
+            }
+            else
+            {
+                os_sprintf(msg_buf, GET_SUB_DEV_PARAM_RESP, handle->dev_param[i].mac,
+                           req_id, -1, "no", "off");
+                os_printf("=== send msg %s \n", msg_buf);
+                tcp_client_send_msg(msg_buf, os_strlen(msg_buf));
+            }
+            break;
+        default:
+            break;
+
     }
 }

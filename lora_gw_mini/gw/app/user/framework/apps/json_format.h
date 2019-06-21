@@ -33,6 +33,26 @@ extern "C"
 }\
 }"
 
+#define SET_SWITCH_RESP "{\
+\"method\":\"up_msg\",\
+\"cc_uuid\":\"%s\",\
+\"req_id\":%d,\
+\"code\":%d\
+}"
+
+#define GET_SUB_DEV_PARAM_RESP "{ \
+\"method\":\"up_msg\",\
+\"dev_uuid\":\"%s\",
+\"req_id\":%d,\
+\"code\":%d,\
+\"attribute\":
+{ \
+\"online\":\"%s\",\
+\"switch\":\"%s\",\
+}\
+}"
+
+
 #define UPLOAD_EVENT_MSG "{\
 \"method\":\"report_msg\",\
 \"cc_uuid\":\"%s%s\",\
@@ -47,15 +67,21 @@ extern "C"
 },\
 \"dev2\":\
 {\
-\"dev_uuid\":\"AAA\",\
-\"online\":\"no\",\
-\"switch\":\"off\"\
+\"dev_uuid\":\"%s\",\
+\"online\":\"%s\",\
+\"switch\":\"%s\"\
 },\
 \"dev3\":\
 {\
-\"dev_uuid\":\"BBB\",\
-\"online\":\"yes\",\
-\"switch\":\"on\",\
+\"dev_uuid\":\"%s\",\
+\"online\":\"%s\",\
+\"switch\":\"%s\",\
+},\
+\"dev4\":\
+{\
+\"dev_uuid\":\"%s\",\
+\"online\":\"%s\",\
+\"switch\":\"%s\",\
 }\
 }\
 }"
