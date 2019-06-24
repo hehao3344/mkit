@@ -1,15 +1,9 @@
 #ifndef __MSC_TYPES_H
 #define __MSC_TYPES_H
 
-#ifdef WIN32
-#include <stdio.h>
-#else
-//#include <stdlib.h>
-//#include <stdio.h>
+#ifndef ARRAY_SIZE
+#define ARRAY_SIZE(x) ((int)(sizeof(x)/sizeof((x)[0])))
 #endif
-
-//#define TRUE                    1
-//#define FALSE                   0
 
 // new type define style
 typedef unsigned char           boolean;

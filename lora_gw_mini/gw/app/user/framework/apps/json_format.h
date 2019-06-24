@@ -42,11 +42,11 @@ extern "C"
 
 #define GET_SUB_DEV_PARAM_RESP "{ \
 \"method\":\"up_msg\",\
-\"dev_uuid\":\"%s\",
+\"dev_uuid\":\"%s\",\
 \"req_id\":%d,\
 \"code\":%d,\
-\"attribute\":
-{ \
+\"attribute\":\
+{\
 \"online\":\"%s\",\
 \"switch\":\"%s\",\
 }\

@@ -69,7 +69,7 @@ static void ICACHE_FLASH_ATTR key_short_press(void);
 static void ICACHE_FLASH_ATTR tcp_client_recv_data_callback(void *arg, char *buffer, unsigned short length);
 static void ICACHE_FLASH_ATTR recv_data_fn(char *buffer, unsigned short len);
 static void ICACHE_FLASH_ATTR protocol_handle_data_cb(char * mac, char cmd, char value);
-static void (* json_msg_parse_fn)(void * arg, E_JSON_CMD e_cmd, int int_param, char * char_param);
+static void ICACHE_FLASH_ATTR json_msg_parse_fn(void * arg, E_JSON_CMD e_cmd, int req_id, int int_param, char * char_param);
 
 boolean ICACHE_FLASH_ATTR schedule_create(uint16 smart_config)
 {
@@ -106,7 +106,7 @@ boolean ICACHE_FLASH_ATTR schedule_create(uint16 smart_config)
         i += 2;
         j += 3;
     }
-    handle->dev_mac[12] = 0;
+    handle->cc_mac[12] = 0;
 
     for (i=0; i<MAX_DEV_COUNT; i++)
     {
@@ -371,55 +371,21 @@ static void protocol_handle_data_cb(char * address, char cmd, char value)
     switch(cmd)
     {
         case E_SWITCH_ON_OFF:
+        {
+            os_printf("update on_off to %d \n", value);
+            // 要更新
+            // handle->dev_param[i].on_off = value;
 
-#if 0
-#define UPLOAD_EVENT_MSG "{\
-\"method\":\"report_msg\",\
-\"cc_uuid\":\"%s%s\",\
-\"attr\":\
-{\
-\"cmd\":\"updata_status\",\
-\"dev1\":\
-{\
-\"dev_uuid\":\"%s\",\
-\"online\":\"%s\",\
-\"switch\":\"%s\",\
-},\
-\"dev2\":\
-{\
-\"dev_uuid\":\"%s\",\
-\"online\":\"%s\",\
-\"switch\":\"%s\"\
-},\
-\"dev3\":\
-{\
-\"dev_uuid\":\"%s\",\
-\"online\":\"%s\",\
-\"switch\":\"%s\",\
-},\
-\"dev4\":\
-{\
-\"dev_uuid\":\"%s\",\
-\"online\":\"%s\",\
-\"switch\":\"%s\",\
-}\
-}\
-}"
-#endif
-                os_printf("update on_off to %d \n", value);
-                // 要更新
-                // handle->dev_param[i].on_off = value;
-
-                os_sprintf(upload_buf, UPLOAD_EVENT_MSG, address, handle->cc_mac,
-                           handle->dev_param[0].mac, (1 == handle->dev_param[0].status) ? "yes" : "no", (1 == handle->dev_param[0].on_off) ? "on" : "off",
-                           handle->dev_param[1].mac, (1 == handle->dev_param[1].status) ? "yes" : "no", (1 == handle->dev_param[1].on_off) ? "on" : "off",
-                           handle->dev_param[2].mac, (1 == handle->dev_param[2].status) ? "yes" : "no", (1 == handle->dev_param[2].on_off) ? "on" : "off",
-                           handle->dev_param[3].mac, (1 == handle->dev_param[3].status) ? "yes" : "no", (1 == handle->dev_param[3].on_off) ? "on" : "off");
-                os_printf("=== send msg %s \n", upload_buf);
-                tcp_client_send_msg(upload_buf, os_strlen(upload_buf));
-                break;
-            }
+            os_sprintf(upload_buf, UPLOAD_EVENT_MSG, address, handle->cc_mac,
+                       handle->dev_param[0].mac, (1 == handle->dev_param[0].status) ? "yes" : "no", (1 == handle->dev_param[0].on_off) ? "on" : "off",
+                       handle->dev_param[1].mac, (1 == handle->dev_param[1].status) ? "yes" : "no", (1 == handle->dev_param[1].on_off) ? "on" : "off",
+                       handle->dev_param[2].mac, (1 == handle->dev_param[2].status) ? "yes" : "no", (1 == handle->dev_param[2].on_off) ? "on" : "off",
+                       handle->dev_param[3].mac, (1 == handle->dev_param[3].status) ? "yes" : "no", (1 == handle->dev_param[3].on_off) ? "on" : "off");
+            os_printf("=== send msg %s \n", upload_buf);
+            tcp_client_send_msg(upload_buf, os_strlen(upload_buf));
             break;
+        }
+        break;
         case E_SWITCH_MATCH:
             break;
         case E_SWITCH_GET_PARAM:
@@ -438,9 +404,12 @@ static void protocol_handle_data_cb(char * address, char cmd, char value)
     }
 }
 
-static void (* json_msg_parse_fn)(void * arg, E_JSON_CMD e_cmd, int req_id, int int_param, char * char_param)
+static void ICACHE_FLASH_ATTR json_msg_parse_fn(void * arg, E_JSON_CMD e_cmd, int req_id, int int_param, char * char_param)
 {
-
+    int int_mac[DEV_MAC_LEN] = {0};
+    char c_mac[DEV_MAC_LEN] = {0};
+    char msg_buf[256] = {0};
+    SCHEDULE_OBJECT * handle = instance();
     switch(e_cmd)
     {
         case E_REGISTER_RESP:
@@ -453,9 +422,7 @@ static void (* json_msg_parse_fn)(void * arg, E_JSON_CMD e_cmd, int req_id, int 
             os_printf("receive fw upgrade cmd \n");
             break;
         case E_SET_SWITCH_CMD:
-            int int_mac[DEV_MAC_LEN] = {0};
-            char c_mac[DEV_MAC_LEN] = {0};
-            char msg_buf[256] = {0};
+        {
             os_printf("setting switch to %d \n", int_param);
             if (4 == sscanf(char_param, "%02x%02x%02x%02x", &int_mac[0], &int_mac[1], &int_mac[2], &int_mac[3]))
             {
@@ -502,26 +469,22 @@ static void (* json_msg_parse_fn)(void * arg, E_JSON_CMD e_cmd, int req_id, int 
                 sx1276_hal_set_send_flags(1);
                 os_printf("receive set switch cmd \n");
 
-                os_sprintf(msg_buf, SET_SWITCH_RESP, address, handle->cc_mac,
+                os_sprintf(msg_buf, SET_SWITCH_RESP, "01", handle->cc_mac,
                            req_id, 0);
                 os_printf("=== send msg %s \n", msg_buf);
                 tcp_client_send_msg(msg_buf, os_strlen(msg_buf));
             }
             else
             {
-                os_sprintf(msg_buf, SET_SWITCH_RESP, address, handle->cc_mac,
+                os_sprintf(msg_buf, SET_SWITCH_RESP, "01", handle->cc_mac,
                            req_id, -1);
                 os_printf("=== send msg %s \n", msg_buf);
                 tcp_client_send_msg(msg_buf, os_strlen(msg_buf));
             }
             break;
+        }
         case E_GET_SUB_DEV_CMD:
-            char msg_buf[256] = {0};
             os_printf("receive get sub device cmd \n");
-
-            int int_mac[DEV_MAC_LEN] = {0};
-            char c_mac[DEV_MAC_LEN] = {0};
-            char msg_buf[256] = {0};
             os_printf("setting switch to %d \n", int_param);
             if (4 == sscanf(char_param, "%02x%02x%02x%02x", &int_mac[0], &int_mac[1], &int_mac[2], &int_mac[3]))
             {
@@ -548,7 +511,7 @@ static void (* json_msg_parse_fn)(void * arg, E_JSON_CMD e_cmd, int req_id, int 
                 }
             }
 
-            handle->dev_param[i].mac
+            //handle->dev_param[i].mac
 
             if (-1 != index)
             {
