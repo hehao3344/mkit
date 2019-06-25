@@ -18,13 +18,13 @@ static char send_buffer[PACKET_LEN];
 
 cmb_handle_cb cmd_cb = NULL;
 
-void protocol_set_cb(cmb_handle_cb cb)
+void ICACHE_FLASH_ATTR protocol_set_cb(cmb_handle_cb cb)
 {
     cmd_cb = cb;
 }
 
 // 处理命令
-int protocol_handle_cmd(char * buf, char len)
+int ICACHE_FLASH_ATTR protocol_handle_cmd(char * buf, char len)
 {
     char i;
     char check_sum = 0;
@@ -59,7 +59,7 @@ int protocol_handle_cmd(char * buf, char len)
 }
 
 // 0x01：产生打开/关闭插座命令数据
-char * protocol_switch_cmd(char * mac, char on_off)
+char * ICACHE_FLASH_ATTR protocol_switch_cmd(char * mac, char on_off)
 {
     char i;
     char check_sum = 0;
@@ -92,7 +92,7 @@ char * protocol_switch_cmd(char * mac, char on_off)
 }
 
 //0x02：开始配对 payload = 1 表示开始配对 =3表示配对成功
-char * protocol_match_cmd(int payload)
+char * ICACHE_FLASH_ATTR protocol_match_cmd(int payload)
 {
     char i;
     char check_sum = 0;
@@ -124,7 +124,7 @@ char * protocol_match_cmd(int payload)
 }
 
 //0x03：获取子设备属性
-char * protocol_get_property(char * mac)
+char * ICACHE_FLASH_ATTR protocol_get_property(char * mac)
 {
     char i;
     char check_sum = 0;

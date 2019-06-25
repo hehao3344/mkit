@@ -45,12 +45,12 @@ typedef void (* recv_data_callback)(char *buffer, unsigned short length);
 #define  RF_SDI_H        gw_io_sx1278_mosi_output(1)
 #endif
 
-void sx1276_hal_set_recv_cb(recv_data_callback cb);
-void sx1276_hal_init(void);
-void sx1276_hal_send(uint8 *rf_tran_buf, uint8 len);
-void sx1276_hal_rx_mode(void);
-void sx1276_hal_receive_handle(void);
-void sx1276_hal_set_send_flags(uint8 value);
-uint8 sx1276_hal_get_send_flags(void);
+void ICACHE_FLASH_ATTR sx1276_hal_set_recv_cb(recv_data_callback cb);
+void ICACHE_FLASH_ATTR sx1276_hal_init(void);
+void ICACHE_FLASH_ATTR sx1276_hal_send(uint8 *rf_tran_buf, uint8 len);
+void ICACHE_FLASH_ATTR sx1276_hal_rx_mode(void);
+void ICACHE_FLASH_ATTR sx1276_hal_receive_handle(void);
+void ICACHE_FLASH_ATTR sx1276_hal_set_send_flags(uint8 value);
+uint8 ICACHE_FLASH_ATTR sx1276_hal_get_send_flags(void);
 
 #endif

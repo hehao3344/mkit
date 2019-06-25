@@ -4,7 +4,7 @@
 #include "../protocol/protocol.h"
 
 #include "sx1276.h"
- 
+
 #if 0
 static uint8   frequency[3] = { 0x6c, 0x80, 0x00 };
 //static uint8 spreading_factor = 11;   // 7-12
@@ -54,24 +54,24 @@ static uint8   send_done = 1;
 static uint8   recv_buffer[PACKET_LEN];
 static lpCtrlTypefunc_t lp_type_func = {0, 0, 0, 0, 0};
 
-static void write_buffer(uint8 addr, uint8 buffer);
-static uint8 read_buffer(uint8 addr);
-static void lora_set_op_mode(RFMODE_SET opMode);
-static void lora_fsk(DEBUGGING_FSK_OOK opMode);
-static void lora_set_rf_frequency(void);
-static void lora_set_rf_power(uint8 power);
-static void lora_set_spreading_factor(uint8 factor);
-static void lora_set_nb_trig_peaks(uint8 value);
-static void lora_set_error_coding(uint8 value);
-static void lora_set_packet_crc_on(boolean enable);
-static void lora_set_signal_bandwidth(uint8 bw);
-static void lora_set_implicit_header_on(boolean enable);
-static void lora_set_symb_timeout(uint32 value);
-static void lora_set_payload_length(uint8 value);
-static void lora_set_mobile_node(boolean enable);
-static void rf_receive (void);
+static void ICACHE_FLASH_ATTR write_buffer(uint8 addr, uint8 buffer);
+static uint8 ICACHE_FLASH_ATTR read_buffer(uint8 addr);
+static void ICACHE_FLASH_ATTR lora_set_op_mode(RFMODE_SET opMode);
+static void ICACHE_FLASH_ATTR lora_fsk(DEBUGGING_FSK_OOK opMode);
+static void ICACHE_FLASH_ATTR lora_set_rf_frequency(void);
+static void ICACHE_FLASH_ATTR lora_set_rf_power(uint8 power);
+static void ICACHE_FLASH_ATTR lora_set_spreading_factor(uint8 factor);
+static void ICACHE_FLASH_ATTR lora_set_nb_trig_peaks(uint8 value);
+static void ICACHE_FLASH_ATTR lora_set_error_coding(uint8 value);
+static void ICACHE_FLASH_ATTR lora_set_packet_crc_on(boolean enable);
+static void ICACHE_FLASH_ATTR lora_set_signal_bandwidth(uint8 bw);
+static void ICACHE_FLASH_ATTR lora_set_implicit_header_on(boolean enable);
+static void ICACHE_FLASH_ATTR lora_set_symb_timeout(uint32 value);
+static void ICACHE_FLASH_ATTR lora_set_payload_length(uint8 value);
+static void ICACHE_FLASH_ATTR lora_set_mobile_node(boolean enable);
+static void ICACHE_FLASH_ATTR rf_receive (void);
 
-void sx1276_delay_1s(uint32 ii)
+void ICACHE_FLASH_ATTR sx1276_delay_1s(uint32 ii)
 {
     uint8 j;
     while(ii--)
@@ -80,12 +80,12 @@ void sx1276_delay_1s(uint32 ii)
     }
 }
 
-void rx1276_rf_send_packet(uint8 *rf_tran_buf, uint8 len)
+void ICACHE_FLASH_ATTR rx1276_rf_send_packet(uint8 *rf_tran_buf, uint8 len)
 {
     uint8 i;
-    
+
     send_done = 0;
-    
+
     lp_type_func.paSwitchCmdfunc(TX_OPEN);
 
     lora_set_op_mode(STDBY_MODE);
@@ -111,17 +111,17 @@ void rx1276_rf_send_packet(uint8 *rf_tran_buf, uint8 len)
     lora_set_op_mode(TRANSMITTER_MODE);
 }
 
-uint8 sx1276_get_send_flags(void)
+uint8 ICACHE_FLASH_ATTR sx1276_get_send_flags(void)
 {
     return send_done;
 }
 
-void sx1276_set_send_flags(uint8 value)
+void ICACHE_FLASH_ATTR sx1276_set_send_flags(uint8 value)
 {
     send_done = value;
 }
 
-void rx1276_register_rf_func(lpCtrlTypefunc_t *func)
+void ICACHE_FLASH_ATTR rx1276_register_rf_func(lpCtrlTypefunc_t *func)
 {
     if (0 != func->lpByteWritefunc)
     {
@@ -149,7 +149,7 @@ void rx1276_register_rf_func(lpCtrlTypefunc_t *func)
     }
 }
 
-void sx1276_lora_init(void)
+void ICACHE_FLASH_ATTR sx1276_lora_init(void)
 {
     lora_set_op_mode(SLEEP_MODE);
     lora_fsk(LORA_MODE);
@@ -174,12 +174,12 @@ void sx1276_lora_init(void)
     rf_receive();
 }
 
-void sx1276_rx_mode(void)
+void ICACHE_FLASH_ATTR sx1276_rx_mode(void)
 {
     rf_receive();
 }
 
-void sx1278_recv_handle(void)
+void ICACHE_FLASH_ATTR sx1278_recv_handle(void)
 {
     uint8 i;
     uint8 rf_ex0_status = 0;
@@ -188,7 +188,7 @@ void sx1278_recv_handle(void)
 
     //uint8 ver = read_buffer(REG_LR_VERSION);
     //os_printf("get version 0x%x \n", ver);
-    
+
     //lora_set_op_mode(TRANSMITTER_MODE);
     //uint8 op_mode = read_buffer(REG_LR_OPMODE);
     //os_printf("set 0x%x get mode 0x%x \n", TRANSMITTER_MODE, op_mode);
@@ -239,7 +239,7 @@ void sx1278_recv_handle(void)
     }
     else if (0x08 == (rf_ex0_status & 0x08))
     {
-        /* TX DONE */        
+        /* TX DONE */
         lora_set_op_mode(STDBY_MODE);
         write_buffer(REG_LR_IRQFLAGSMASK, IRQN_RXD_Value);
         write_buffer(REG_LR_HOPPERIOD,   PACKET_MIAX_Value);
@@ -288,7 +288,7 @@ void sx1278_recv_handle(void)
 ////////////////////////////////////////////////////////////////////////////////
 // static function.
 ////////////////////////////////////////////////////////////////////////////////
-static void write_buffer(uint8 addr, uint8 buffer)
+static void ICACHE_FLASH_ATTR write_buffer(uint8 addr, uint8 buffer)
 {
     lp_type_func.lpSwitchEnStatus(EN_OPEN);    // NSS = 0;
     lp_type_func.lpByteWritefunc(addr | 0x80);
@@ -296,7 +296,7 @@ static void write_buffer(uint8 addr, uint8 buffer)
     lp_type_func.lpSwitchEnStatus(EN_CLOSE); // NSS = 1;
 }
 
-static uint8 read_buffer(uint8 addr)
+static uint8 ICACHE_FLASH_ATTR read_buffer(uint8 addr)
 {
     uint8 value = 0;
 
@@ -309,7 +309,7 @@ static uint8 read_buffer(uint8 addr)
     return value;
 }
 
-static void lora_set_op_mode(RFMODE_SET opMode)
+static void ICACHE_FLASH_ATTR lora_set_op_mode(RFMODE_SET opMode)
 {
     uint8 op_mode_prev;
     op_mode_prev = read_buffer(REG_LR_OPMODE);
@@ -319,7 +319,7 @@ static void lora_set_op_mode(RFMODE_SET opMode)
     write_buffer(REG_LR_OPMODE, op_mode_prev);
 }
 
-static void lora_fsk(DEBUGGING_FSK_OOK opMode)
+static void ICACHE_FLASH_ATTR lora_fsk(DEBUGGING_FSK_OOK opMode)
 {
     uint8 op_mode_prev = 0;
     op_mode_prev = read_buffer(REG_LR_OPMODE);
@@ -329,20 +329,20 @@ static void lora_fsk(DEBUGGING_FSK_OOK opMode)
     write_buffer(REG_LR_OPMODE, op_mode_prev);
 }
 
-static void lora_set_rf_frequency(void)
+static void ICACHE_FLASH_ATTR lora_set_rf_frequency(void)
 {
     write_buffer(REG_LR_FRFMSB, frequency[0]);
     write_buffer(REG_LR_FRFMID, frequency[1]);
     write_buffer(REG_LR_FRFLSB, frequency[2]);
 }
 
-static void lora_set_rf_power(uint8 power)
+static void ICACHE_FLASH_ATTR lora_set_rf_power(uint8 power)
 {
     write_buffer(REG_LR_PADAC, 0x87);
     write_buffer(REG_LR_PACONFIG, power_data[power]);
 }
 
-static void lora_set_spreading_factor(uint8 factor)
+static void ICACHE_FLASH_ATTR lora_set_spreading_factor(uint8 factor)
 {
     uint8 recv_data;
     lora_set_nb_trig_peaks(3);
@@ -351,7 +351,7 @@ static void lora_set_spreading_factor(uint8 factor)
     write_buffer(REG_LR_MODEMCONFIG2, recv_data);
 }
 
-static void lora_set_nb_trig_peaks(uint8 value)
+static void ICACHE_FLASH_ATTR lora_set_nb_trig_peaks(uint8 value)
 {
     uint8 recv_data;
     recv_data = read_buffer(0x31);
@@ -359,7 +359,7 @@ static void lora_set_nb_trig_peaks(uint8 value)
     write_buffer(0x31, recv_data);
 }
 
-static void lora_set_error_coding(uint8 value)
+static void ICACHE_FLASH_ATTR lora_set_error_coding(uint8 value)
 {
     uint8 recv_data;
     recv_data = read_buffer(REG_LR_MODEMCONFIG1);
@@ -368,7 +368,7 @@ static void lora_set_error_coding(uint8 value)
     // LoRaset_tings.ErrorCoding = value;
 }
 
-static void lora_set_packet_crc_on(boolean enable)
+static void ICACHE_FLASH_ATTR lora_set_packet_crc_on(boolean enable)
 {
     uint8 recv_data;
     recv_data = read_buffer(REG_LR_MODEMCONFIG2);
@@ -377,7 +377,7 @@ static void lora_set_packet_crc_on(boolean enable)
     write_buffer(REG_LR_MODEMCONFIG2, recv_data);
 }
 
-static void lora_set_signal_bandwidth(uint8 bw)
+static void ICACHE_FLASH_ATTR lora_set_signal_bandwidth(uint8 bw)
 {
     uint8 recv_data;
     recv_data = read_buffer(REG_LR_MODEMCONFIG1);
@@ -385,7 +385,7 @@ static void lora_set_signal_bandwidth(uint8 bw)
     write_buffer(REG_LR_MODEMCONFIG1, recv_data);
 }
 
-static void lora_set_implicit_header_on(boolean enable)
+static void ICACHE_FLASH_ATTR lora_set_implicit_header_on(boolean enable)
 {
     uint8 recv_data;
     recv_data = read_buffer(REG_LR_MODEMCONFIG1);
@@ -394,7 +394,7 @@ static void lora_set_implicit_header_on(boolean enable)
     write_buffer(REG_LR_MODEMCONFIG1, recv_data);
 }
 
-static void lora_set_symb_timeout(uint32 value)
+static void ICACHE_FLASH_ATTR ICACHE_FLASH_ATTR lora_set_symb_timeout(uint32 value)
 {
     uint8 recv_data[2];
 
@@ -407,12 +407,12 @@ static void lora_set_symb_timeout(uint32 value)
     write_buffer(REG_LR_SYMBTIMEOUTLSB, recv_data[1]);
 }
 
-static void lora_set_payload_length(uint8 value)
+static void ICACHE_FLASH_ATTR lora_set_payload_length(uint8 value)
 {
     write_buffer(REG_LR_PAYLOADLENGTH, value);
 }
 
-static void lora_set_mobile_node(boolean enable)
+static void ICACHE_FLASH_ATTR lora_set_mobile_node(boolean enable)
 {
     uint8 recv_data;
     recv_data = read_buffer(REG_LR_MODEMCONFIG3);
@@ -420,7 +420,7 @@ static void lora_set_mobile_node(boolean enable)
     write_buffer(REG_LR_MODEMCONFIG3, recv_data);
 }
 
-static void rf_receive(void)
+static void ICACHE_FLASH_ATTR rf_receive(void)
 {
     lora_set_op_mode(STDBY_MODE);
     write_buffer(REG_LR_IRQFLAGSMASK, IRQN_RXD_Value);

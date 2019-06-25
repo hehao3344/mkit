@@ -26,37 +26,37 @@ static lpCtrlTypefunc_t  ctrlTypefunc =
     fn_fqc_recv_data
 };
 
-void sx1276_hal_set_recv_cb(recv_data_callback cb)
+void ICACHE_FLASH_ATTR sx1276_hal_set_recv_cb(recv_data_callback cb)
 {
     recv_cb = cb;
 }
 
-void sx1276_hal_send(uint8 *rf_tran_buf, uint8 len)
+void ICACHE_FLASH_ATTR sx1276_hal_send(uint8 *rf_tran_buf, uint8 len)
 {
     rx1276_rf_send_packet(rf_tran_buf, len);
 }
 
-void sx1276_hal_rx_mode(void)
+void ICACHE_FLASH_ATTR sx1276_hal_rx_mode(void)
 {
     sx1276_rx_mode();
 }
 
-uint8 sx1276_hal_get_send_flags(void)
+uint8 ICACHE_FLASH_ATTR sx1276_hal_get_send_flags(void)
 {
     return sx1276_get_send_flags();
 }
 
-void sx1276_hal_set_send_flags(uint8 value)
+void ICACHE_FLASH_ATTR sx1276_hal_set_send_flags(uint8 value)
 {
     sx1276_set_send_flags(value);
 }
 
-void sx1276_hal_receive_handle(void)
+void ICACHE_FLASH_ATTR sx1276_hal_receive_handle(void)
 {
     sx1278_recv_handle();
 }
 
-void sx1276_hal_init(void)
+void ICACHE_FLASH_ATTR sx1276_hal_init(void)
 {
 #ifdef USE_HSPI
     spi_init(HSPI);
@@ -75,7 +75,7 @@ void sx1276_hal_init(void)
 ////////////////////////////////////////////////////////////////////////////////
 // static function
 ////////////////////////////////////////////////////////////////////////////////
-static void fn_send_byte(uint8 out)
+static void ICACHE_FLASH_ATTR fn_send_byte(uint8 out)
 {
 #ifdef USE_HSPI
     spi_tx8(HSPI, out);
@@ -101,7 +101,7 @@ static void fn_send_byte(uint8 out)
 #endif
 }
 
-static uint8 fn_spi_read_byte(void)
+static uint8 ICACHE_FLASH_ATTR fn_spi_read_byte(void)
 {
 
 #ifdef USE_HSPI
@@ -127,7 +127,7 @@ static uint8 fn_spi_read_byte(void)
 #endif
 }
 
-static void fn_cmd_switch_en(CmdEntype_t cmd)
+static void ICACHE_FLASH_ATTR fn_cmd_switch_en(CmdEntype_t cmd)
 {
     switch(cmd)
     {
@@ -147,7 +147,7 @@ static void fn_cmd_switch_en(CmdEntype_t cmd)
 }
 
 // 没用上 暂时不处理
-static void fn_cmd_switch_pa(CmdPaType_t cmd)
+static void ICACHE_FLASH_ATTR fn_cmd_switch_pa(CmdPaType_t cmd)
 {
 #if 0
     switch(cmd)
@@ -170,7 +170,7 @@ static void fn_cmd_switch_pa(CmdPaType_t cmd)
 }
 
 // 接收到RF的数据
-static void fn_fqc_recv_data(uint8 *buffer, uint16 len)
+static void ICACHE_FLASH_ATTR fn_fqc_recv_data(uint8 *buffer, uint16 len)
 {
     if (NULL != recv_cb)
     {
@@ -179,7 +179,7 @@ static void fn_fqc_recv_data(uint8 *buffer, uint16 len)
 }
 
 // 芯片复位
-static void sx1276_reset(void)
+static void ICACHE_FLASH_ATTR sx1276_reset(void)
 {
     RF_REST_L;
     sx1276_delay_1s(2000);

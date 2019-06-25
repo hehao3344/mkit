@@ -55,7 +55,6 @@ COMPONENTS_eagle.app.v6 = \
 	user/framework/network/libnetwork.a	\
 	user/framework/tcp/libtcp.a	\
 	user/framework/protocol/libprotocol.a \
-	user/framework/crypto/libcrypto.a \
 	driver/libdriver.a	\
 	user/libuser.a
 

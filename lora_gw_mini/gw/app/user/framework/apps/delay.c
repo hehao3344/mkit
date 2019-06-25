@@ -8,7 +8,7 @@
 #include "../core/core.h"
 #include "delay.h"
 
-void os_delay_ms(unsigned int value)
+void ICACHE_FLASH_ATTR os_delay_ms(unsigned int value)
 {
 	unsigned int i, j;
 	for(i=0; i<value; i++)

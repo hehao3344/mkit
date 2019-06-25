@@ -21,7 +21,7 @@ typedef void (*tcp_recv_data_callback)(void *arg, char *buffer, unsigned short l
 
 boolean ICACHE_FLASH_ATTR tcp_client_create(void);
 void ICACHE_FLASH_ATTR tcp_client_set_callback(tcp_recv_data_callback cb, void *arg);
-void tcp_client_send_msg(uint8 *buffer, uint16 len);
+void ICACHE_FLASH_ATTR tcp_client_send_msg(uint8 *buffer, uint16 len);
 void ICACHE_FLASH_ATTR tcp_client_destroy(void);
 
 #ifdef __cplusplus

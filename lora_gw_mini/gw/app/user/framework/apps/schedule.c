@@ -60,7 +60,7 @@ typedef struct _SCHEDULE_OBJECT
 
 } SCHEDULE_OBJECT;
 
-static SCHEDULE_OBJECT * instance(void);
+static SCHEDULE_OBJECT * ICACHE_FLASH_ATTR instance(void);
 static void ICACHE_FLASH_ATTR schedule_proc_task(os_event_t *events);
 static void ICACHE_FLASH_ATTR system_timer_center(void *arg);
 static void ICACHE_FLASH_ATTR net_led_center(void *arg);
@@ -145,7 +145,7 @@ void ICACHE_FLASH_ATTR schedule_destroy(void)
 //////////////////////////////////////////////////////////////////////////////////
 // static function.
 //////////////////////////////////////////////////////////////////////////////////
-static SCHEDULE_OBJECT * instance( void )
+static SCHEDULE_OBJECT * ICACHE_FLASH_ATTR instance( void )
 {
     static SCHEDULE_OBJECT *handle = NULL;
     if (NULL == handle)
@@ -168,7 +168,7 @@ static void ICACHE_FLASH_ATTR tcp_client_recv_data_callback(void *arg, char *buf
     os_printf("receive len:%d msg:%s \n", length, buffer);
     json_handle_handle_data(buffer, (int)length);
 
-#if 0
+#if 1
     int i;
     // 测试版本 后期需要注意的是 一包发送完毕 等待发送中断收到才能发送下一包
     for(i=0; i<1; i++)
@@ -406,20 +406,22 @@ static void protocol_handle_data_cb(char * address, char cmd, char value)
 
 static void ICACHE_FLASH_ATTR json_msg_parse_fn(void * arg, E_JSON_CMD e_cmd, int req_id, int int_param, char * char_param)
 {
+#if 1
     int int_mac[DEV_MAC_LEN] = {0};
     char c_mac[DEV_MAC_LEN] = {0};
     char msg_buf[256] = {0};
     SCHEDULE_OBJECT * handle = instance();
     switch(e_cmd)
     {
+#if 0
         case E_REGISTER_RESP:
-            os_printf("receive register response \n");
+            os_printf("recv register resp\n");
             break;
         case E_HEART_BEAT_RESP:
-            os_printf("receive heart beat response \n");
+            os_printf("recv heart beat resp \n");
             break;
         case E_FW_UPGRADE_CMD:
-            os_printf("receive fw upgrade cmd \n");
+            os_printf("recv fw upgrade cmd \n");
             break;
         case E_SET_SWITCH_CMD:
         {
@@ -467,24 +469,23 @@ static void ICACHE_FLASH_ATTR json_msg_parse_fn(void * arg, E_JSON_CMD e_cmd, in
                     os_delay_ms(50);
                 }
                 sx1276_hal_set_send_flags(1);
-                os_printf("receive set switch cmd \n");
 
                 os_sprintf(msg_buf, SET_SWITCH_RESP, "01", handle->cc_mac,
                            req_id, 0);
-                os_printf("=== send msg %s \n", msg_buf);
+                os_printf("send msg %s \n", msg_buf);
                 tcp_client_send_msg(msg_buf, os_strlen(msg_buf));
             }
             else
             {
                 os_sprintf(msg_buf, SET_SWITCH_RESP, "01", handle->cc_mac,
                            req_id, -1);
-                os_printf("=== send msg %s \n", msg_buf);
+                os_printf("send msg %s \n", msg_buf);
                 tcp_client_send_msg(msg_buf, os_strlen(msg_buf));
             }
             break;
         }
+#endif
         case E_GET_SUB_DEV_CMD:
-            os_printf("receive get sub device cmd \n");
             os_printf("setting switch to %d \n", int_param);
             if (4 == sscanf(char_param, "%02x%02x%02x%02x", &int_mac[0], &int_mac[1], &int_mac[2], &int_mac[3]))
             {
@@ -517,14 +518,14 @@ static void ICACHE_FLASH_ATTR json_msg_parse_fn(void * arg, E_JSON_CMD e_cmd, in
             {
                 os_sprintf(msg_buf, GET_SUB_DEV_PARAM_RESP, handle->dev_param[i].mac,
                            req_id, 0, (1 == handle->dev_param[i].status) ? "yes" : "no", (1 == handle->dev_param[i].on_off) ? "on" : "off");
-                os_printf("=== send msg %s \n", msg_buf);
+                os_printf("send msg %s \n", msg_buf);
                 tcp_client_send_msg(msg_buf, os_strlen(msg_buf));
             }
             else
             {
                 os_sprintf(msg_buf, GET_SUB_DEV_PARAM_RESP, handle->dev_param[i].mac,
                            req_id, -1, "no", "off");
-                os_printf("=== send msg %s \n", msg_buf);
+                os_printf("send msg %s \n", msg_buf);
                 tcp_client_send_msg(msg_buf, os_strlen(msg_buf));
             }
             break;
@@ -532,4 +533,5 @@ static void ICACHE_FLASH_ATTR json_msg_parse_fn(void * arg, E_JSON_CMD e_cmd, in
             break;
 
     }
+#endif
 }

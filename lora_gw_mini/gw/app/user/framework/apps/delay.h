@@ -9,7 +9,7 @@ extern "C"
 {
 #endif
 
-void os_delay_ms(unsigned int value);
+void ICACHE_FLASH_ATTR os_delay_ms(unsigned int value);
 
 #ifdef __cplusplus
 }

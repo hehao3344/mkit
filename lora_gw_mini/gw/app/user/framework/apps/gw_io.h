@@ -54,10 +54,10 @@ void ICACHE_FLASH_ATTR gw_io_wifi_output(uint8 on_off);
 void ICACHE_FLASH_ATTR gw_io_sx1278_rst_output(uint8 on_off);
 
 
-void gw_io_sx1278_cs_output(uint8 on_off);
-void gw_io_sx1278_sck_output(uint8 on_off);
-void gw_io_sx1278_mosi_output(uint8 on_off);
-uint8 gw_io_sx1278_miso_input(void);
+void ICACHE_FLASH_ATTR gw_io_sx1278_cs_output(uint8 on_off);
+void ICACHE_FLASH_ATTR gw_io_sx1278_sck_output(uint8 on_off);
+void ICACHE_FLASH_ATTR gw_io_sx1278_mosi_output(uint8 on_off);
+uint8 ICACHE_FLASH_ATTR gw_io_sx1278_miso_input(void);
 
 #endif
 

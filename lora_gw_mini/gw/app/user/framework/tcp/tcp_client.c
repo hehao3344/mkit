@@ -214,7 +214,7 @@ void ICACHE_FLASH_ATTR tcp_client_set_callback(tcp_recv_data_callback cb, void *
     handle->arg = arg;
 }
 
-void tcp_client_send_msg(uint8 *buffer, uint16 len)
+void ICACHE_FLASH_ATTR tcp_client_send_msg(uint8 *buffer, uint16 len)
 {
     TCP_CLIENT_OBJECT *handle = instance();
     if (handle->proxy_connected)
@@ -358,7 +358,7 @@ LOCAL void ICACHE_FLASH_ATTR proxy_recv(void *arg, char *buffer, unsigned short 
     }
 }
 
-
+#if 0
 /******************************************************************************
  * FunctionName : user_esp_platform_upgrade_cb
  * Description  : Processing the downloaded data from the server
@@ -475,6 +475,7 @@ LOCAL void ICACHE_FLASH_ATTR user_esp_platform_upgrade_begin(struct espconn *pes
     }
 }
 
+
 /***************************************************************************************************
 * static function.
 ***************************************************************************************************/
@@ -576,4 +577,4 @@ static void ICACHE_FLASH_ATTR recv_data_callback_fn(void *arg, char *buffer, int
     jsontree_setup(&js, (struct jsontree_value *)&msg_tree, json_putchar);
     json_parse(&js, buffer);
 }
-
+#endif

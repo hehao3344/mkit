@@ -18,7 +18,7 @@ static void *       msg_arg = NULL;
 static int  req_id = 0;
 static char cur_dev_uuid[CC_MAC_LEN+1];
 LOCAL void ICACHE_FLASH_ATTR recv_data_callback(void *arg, char *buffer, int length);
-LOCAL int ICACHE_FLASH_ATTR msg_parse(struct jsontree_context *js_ctx, struct jsonparse_state *parse);
+LOCAL int  ICACHE_FLASH_ATTR msg_parse(struct jsontree_context *js_ctx, struct jsonparse_state *parse);
 
 /***************************************************************************************************
 * static function.

@@ -48,18 +48,18 @@ typedef enum
 typedef void (*cmb_handle_cb)(char * mac, char cmd, char value);
 
 // 设置回调
-void protocol_set_cb(cmb_handle_cb cb);
+void ICACHE_FLASH_ATTR protocol_set_cb(cmb_handle_cb cb);
 
 // 处理命令
-int protocol_handle_cmd(char * buf, char len);
+int ICACHE_FLASH_ATTR protocol_handle_cmd(char * buf, char len);
 
 //0x01：打开/关闭插座
-char * protocol_switch_cmd(char * mac, char on_off);
+char * ICACHE_FLASH_ATTR protocol_switch_cmd(char * mac, char on_off);
 
 //0x02：开始配对
-char * protocol_match_cmd(int payload);
+char * ICACHE_FLASH_ATTR protocol_match_cmd(int payload);
 
 //0x03：获取子设备属性
-char * protocol_get_property(char * mac);
+char * ICACHE_FLASH_ATTR protocol_get_property(char * mac);
 
 #endif
