@@ -83,20 +83,119 @@ uint32 user_rf_cal_sector_set(void)
 void task2(void * arg)
 {
     printf("welcome to task2 \n");
+    int status = 0;
     while(1)
     {
-        vTaskDelay(1000*portTICK_RATE_MS);
-        printf("welcome to .... \n");
+        vTaskDelay(3000/portTICK_RATE_MS);
+        status = wifi_station_get_connect_status();
+        printf("=== get status %d \n", status);
     }
     vTaskDelete(NULL);
 }
 
+void wifi_event_handler_cb(System_Event_t *event)
+{
+    if (event == NULL) {
+        return;
+    }
+
+    switch (event->event_id) {
+        case EVENT_STAMODE_GOT_IP:
+            printf("sta got ip ,create task and free heap size is %d\n", system_get_free_heap_size());
+            schedule_create(0);
+            break;
+
+        case EVENT_STAMODE_CONNECTED:
+            printf("sta connected\n");
+            break;
+
+        case EVENT_STAMODE_DISCONNECTED:
+            wifi_station_connect();
+            break;
+
+        default:
+            break;
+    }
+}
+
+
+void scan_done(void *arg,STATUS status)
+{
+
+     unsigned char ssid[33];
+      char temp[128];
+      struct station_config stationConf;
+      if (status == OK)
+       {
+         struct bss_info *bss_link = (struct bss_info *)arg;
+         bss_link = bss_link->next.stqe_next;//ignore first
+
+         while (bss_link != NULL)
+         {
+           os_memset(ssid, 0, 33);
+           if (os_strlen(bss_link->ssid) <= 32)
+           {
+             os_memcpy(ssid, bss_link->ssid, os_strlen(bss_link->ssid));
+           }
+           else
+           {
+             os_memcpy(ssid, bss_link->ssid, 32);
+           }
+           os_sprintf(temp,"+CWLAP:(%d,\"%s\",%d,\""MACSTR"\",%d)\r\n",
+                      bss_link->authmode, ssid, bss_link->rssi,
+                      MAC2STR(bss_link->bssid),bss_link->channel);
+            printf("%s",temp);
+           bss_link = bss_link->next.stqe_next;
+         }
+
+        os_memcpy(&stationConf.ssid, "XINGLUO_034242", 32);
+        os_memcpy(&stationConf.password, "12345678", 64);
+        wifi_station_set_config_current(&stationConf);
+        wifi_station_connect();
+       }
+       else
+       {
+            printf("%s","Error");
+       }
+}
 
 void user_init(void)
 {
+    uart_init_new();
     xTaskCreate(task2, "tsk2", 256, NULL, 2, NULL);
 
-    printf("SDK version:%s\n", system_get_sdk_version());
-    //schedule_create(0);
+
+
+
+
+    wifi_station_scan(NULL,scan_done);
+
+    printf("SDK version:%s == %d \n", system_get_sdk_version(), portTICK_RATE_MS);
+
+    schedule_create(0);
+    wifi_station_connect();
+
+    return ;
+
+    /* 1 station 2 softap 3 station_ap */
+    wifi_set_opmode(STATION_MODE);
+
+    struct station_config config;
+    bzero(&config, sizeof(struct station_config));
+    sprintf(config.ssid, "XINGLUO_034242");
+    sprintf(config.password, "12345678");
+    wifi_station_set_config(&config);
+
+    //wifi_set_event_handler_cb(wifi_event_handler_cb);
+
+    wifi_station_connect();
+
+
+    //while(1)
+    //{
+    //    vTaskDelay(1000/portTICK_RATE_MS);
+    //    printf("SDK version:%s\n", system_get_sdk_version());
+    //}
+
 }
 

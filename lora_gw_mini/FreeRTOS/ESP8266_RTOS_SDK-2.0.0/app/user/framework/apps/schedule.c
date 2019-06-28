@@ -63,14 +63,21 @@ static void ICACHE_FLASH_ATTR recv_data_fn(char *buffer, unsigned short len);
 static void ICACHE_FLASH_ATTR protocol_handle_data_cb(char * mac, char cmd, char value);
 //static void ICACHE_FLASH_ATTR json_msg_parse_fn(void * arg, E_JSON_CMD e_cmd, int req_id, int int_param, char * char_param);
 
+
 boolean ICACHE_FLASH_ATTR schedule_create(uint16 smart_config)
 {
     SCHEDULE_OBJECT * handle = instance();
 
-
-    os_printf("[schedule] start \n");
+    printf("[schedule] start \n");
 
     gw_io_init(key_short_press, key_long_press);
+
+
+    //wifi_station_get_config(&station_conf);
+    //printf(MACSTR ", %s, %s %d\n", MAC2STR(station_conf.bssid), station_conf.password, station_conf.ssid, station_conf.bssid_set);
+
+    printf( "wifi start ... \n" );
+    vTaskDelay(1000/portTICK_RATE_MS);
 
     protocol_set_cb(protocol_handle_data_cb);
 
@@ -117,9 +124,9 @@ boolean ICACHE_FLASH_ATTR schedule_create(uint16 smart_config)
     os_timer_arm(&handle->net_led_timer, 100, 1);
 
     tcp_client_create();
-    tcp_client_set_callback(tcp_client_recv_data_callback, handle);
+    //tcp_client_set_callback(tcp_client_recv_data_callback, handle);
 
-    os_printf("[schedule] init ok \n");
+    printf("[schedule] init ok \n");
 
     return TRUE;
 }
@@ -153,11 +160,11 @@ static void ICACHE_FLASH_ATTR tcp_client_recv_data_callback(void *arg, char *buf
     SCHEDULE_OBJECT * handle = (SCHEDULE_OBJECT *)arg;
     if (NULL == handle)
     {
-        os_printf("invalid param \n");
+        printf("invalid param \n");
         return;
     }
 
-    os_printf("receive len:%d msg:%s \n", length, buffer);
+    printf("receive len:%d msg:%s \n", length, buffer);
     //json_handle_handle_data(buffer, (int)length);
 
 #if 0
@@ -171,7 +178,7 @@ static void ICACHE_FLASH_ATTR tcp_client_recv_data_callback(void *arg, char *buf
             dst_on_off = 1;
         }
 
-        os_printf("setting switch to %d \n", dst_on_off);
+        printf("setting switch to %d \n", dst_on_off);
 
         char * buf = protocol_switch_cmd(handle->dev_param[i].mac, (char)dst_on_off);
 
@@ -190,7 +197,7 @@ static void ICACHE_FLASH_ATTR tcp_client_recv_data_callback(void *arg, char *buf
         {
             if (1 == sx1276_hal_get_send_flags())
             {
-                os_printf("ok send finish j=%d on_off to %d \n", j, dst_on_off);
+                printf("ok send finish j=%d on_off to %d \n", j, dst_on_off);
                 handle->dev_param[i].on_off  = dst_on_off;
                 break;
             }
@@ -206,7 +213,7 @@ static void system_timer_center( void *arg )
 {
     SCHEDULE_OBJECT * handle = ( SCHEDULE_OBJECT * )arg;
 
-    // os_printf("get count %d \n", handle->sys_sec);
+    // printf("get count %d \n", handle->sys_sec);
     handle->sys_sec++;
 
     // check wifi status.
@@ -263,11 +270,11 @@ static void ICACHE_FLASH_ATTR key_short_press( void )
     SCHEDULE_OBJECT * handle = instance();
     if (NULL == handle)
     {
-        os_printf("invalid param (not enough memory) \n");
+        printf("invalid param (not enough memory) \n");
         return;
     }
 
-    os_printf("short press \n");
+    printf("short press schedule\n");
 
     // 测试版本 后期需要注意的是 一包发送完毕 等待发送中断收到才能发送下一包
     for(i=0; i<1; i++)
@@ -275,7 +282,7 @@ static void ICACHE_FLASH_ATTR key_short_press( void )
         int dst_on_off = (1 == handle->dev_param[i].on_off) ? 0 : 1;
 
         char * buf = protocol_switch_cmd(handle->dev_param[i].mac, (char)dst_on_off);
-
+        printf("%s %d \n", __FUNCTION__, __LINE__);
         /* 注意 buf len的长度为16字节 */
 
         int j;
@@ -285,18 +292,22 @@ static void ICACHE_FLASH_ATTR key_short_press( void )
         //crypto_api_encrypt_buffer(send_buf, sizeof(send_buf));
         //sx1276_hal_send(send_buf, sizeof(send_buf));
 
+        printf("%s %d \n", __FUNCTION__, __LINE__);
         sx1276_hal_send(buf, PACKET_LEN);
+        printf("%s %d \n", __FUNCTION__, __LINE__);
 
         for(j=0; j<200; j++)
         {
+            printf("%s %d \n", __FUNCTION__, __LINE__);
             if (1 == sx1276_hal_get_send_flags())
             {
-                os_printf("ok send finish j=%d on_off to %d \n", j, dst_on_off);
+                printf("ok send finish j=%d on_off to %d \n", j, dst_on_off);
                 handle->dev_param[i].on_off  = dst_on_off;
                 break;
             }
             os_delay_ms(50);
         }
+        printf("%s %d \n", __FUNCTION__, __LINE__);
         sx1276_hal_set_send_flags(1);
     }
 }
@@ -309,7 +320,9 @@ static void ICACHE_FLASH_ATTR key_short_press( void )
 *******************************************************************************/
 static void ICACHE_FLASH_ATTR key_long_press( void )
 {
-    os_printf("long press \n");
+    printf("long press schedule \n");
+
+    return;
 
 #if 1
     char reset_buf[RESET_FLAGS_LEN] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
@@ -325,12 +338,12 @@ static void ICACHE_FLASH_ATTR key_long_press( void )
 static void ICACHE_FLASH_ATTR recv_data_fn(char * buffer, unsigned short len)
 {
     int i;
-    os_printf("recv from sx1278 len %d \n", len);
+    printf("recv from sx1278 len %d \n", len);
 
     SCHEDULE_OBJECT * handle = instance();
     if (NULL == handle)
     {
-        os_printf("invalid param \n");
+        printf("invalid param \n");
         return;
     }
 
@@ -339,12 +352,12 @@ static void ICACHE_FLASH_ATTR recv_data_fn(char * buffer, unsigned short len)
 #if 0
         /* 1解码 */
         crypto_api_decrypt_buffer(buffer, len);
-        os_printf("dec: \n");
+        printf("dec: \n");
         for(i=0; i<len; i++)
         {
-            os_printf("0x%x ", buffer[i]);
+            printf("0x%x ", buffer[i]);
         }
-        os_printf("\n");
+        printf("\n");
 #endif
         /* 处理命令 */
         //protocol_handle_cmd(buffer, len);
@@ -358,13 +371,13 @@ static void protocol_handle_data_cb(char * address, char cmd, char value)
     int equal = 0;
     char upload_buf[512] = {0};
 
-    os_printf("protocol callback \n");
+    printf("protocol callback \n");
     SCHEDULE_OBJECT * handle = instance();
     switch(cmd)
     {
         case E_SWITCH_ON_OFF:
         {
-            os_printf("update on_off to %d \n", value);
+            printf("update on_off to %d \n", value);
             // 要更新
             // handle->dev_param[i].on_off = value;
 
@@ -373,7 +386,7 @@ static void protocol_handle_data_cb(char * address, char cmd, char value)
                        handle->dev_param[1].mac, (1 == handle->dev_param[1].status) ? "yes" : "no", (1 == handle->dev_param[1].on_off) ? "on" : "off",
                        handle->dev_param[2].mac, (1 == handle->dev_param[2].status) ? "yes" : "no", (1 == handle->dev_param[2].on_off) ? "on" : "off",
                        handle->dev_param[3].mac, (1 == handle->dev_param[3].status) ? "yes" : "no", (1 == handle->dev_param[3].on_off) ? "on" : "off");
-            os_printf("=== send msg %s \n", upload_buf);
+            printf("=== send msg %s \n", upload_buf);
             tcp_client_send_msg(upload_buf, os_strlen(upload_buf));
             break;
         }
@@ -385,7 +398,7 @@ static void protocol_handle_data_cb(char * address, char cmd, char value)
         case E_SWITCH_REPORT_MSG:
             for (i=0; i<1; i++)
             {
-                os_printf("update on_off to %d \n", value);
+                printf("update on_off to %d \n", value);
                 handle->dev_param[i].on_off = value;
                 break;
             }
@@ -408,20 +421,20 @@ static void ICACHE_FLASH_ATTR json_msg_parse_fn(void * arg, E_JSON_CMD e_cmd, in
     {
 #if 0
         case E_REGISTER_RESP:
-            os_printf("recv register resp\n");
+            printf("recv register resp\n");
             break;
         case E_HEART_BEAT_RESP:
-            os_printf("recv heart beat resp \n");
+            printf("recv heart beat resp \n");
             break;
         case E_FW_UPGRADE_CMD:
-            os_printf("recv fw upgrade cmd \n");
+            printf("recv fw upgrade cmd \n");
             break;
         case E_SET_SWITCH_CMD:
         {
-            os_printf("setting switch to %d \n", int_param);
+            printf("setting switch to %d \n", int_param);
             if (4 == sscanf(char_param, "%02x%02x%02x%02x", &int_mac[0], &int_mac[1], &int_mac[2], &int_mac[3]))
             {
-                os_printf("get mac %02x%02x%02x%02x\n", int_mac[0], int_mac[1], int_mac[2], int_mac[3]);
+                printf("get mac %02x%02x%02x%02x\n", int_mac[0], int_mac[1], int_mac[2], int_mac[3]);
                 c_mac[0] = (char)int_mac[0];
                 c_mac[1] = (char)int_mac[1];
                 c_mac[2] = (char)int_mac[2];
@@ -429,7 +442,7 @@ static void ICACHE_FLASH_ATTR json_msg_parse_fn(void * arg, E_JSON_CMD e_cmd, in
             }
             else
             {
-                os_printf("invalid mac %s \n", char_param);
+                printf("invalid mac %s \n", char_param);
             }
 
             int i;
@@ -438,7 +451,7 @@ static void ICACHE_FLASH_ATTR json_msg_parse_fn(void * arg, E_JSON_CMD e_cmd, in
             {
                 if (0 == os_memcmp(handle->dev_param[i].mac, c_mac, DEV_MAC_LEN))
                 {
-                    os_printf("find device %d \n", i);
+                    printf("find device %d \n", i);
                     index = i;
                     break;
                 }
@@ -455,7 +468,7 @@ static void ICACHE_FLASH_ATTR json_msg_parse_fn(void * arg, E_JSON_CMD e_cmd, in
                 {
                     if (1 == sx1276_hal_get_send_flags())
                     {
-                        os_printf("ok send finish j=%d on_off to %d \n", j, int_param);
+                        printf("ok send finish j=%d on_off to %d \n", j, int_param);
                         handle->dev_param[i].on_off  = int_param;
                         break;
                     }
@@ -465,24 +478,24 @@ static void ICACHE_FLASH_ATTR json_msg_parse_fn(void * arg, E_JSON_CMD e_cmd, in
 
                 sprintf(msg_buf, SET_SWITCH_RESP, "01", handle->cc_mac,
                            req_id, 0);
-                os_printf("send msg %s \n", msg_buf);
+                printf("send msg %s \n", msg_buf);
                 tcp_client_send_msg(msg_buf, os_strlen(msg_buf));
             }
             else
             {
                 sprintf(msg_buf, SET_SWITCH_RESP, "01", handle->cc_mac,
                            req_id, -1);
-                os_printf("send msg %s \n", msg_buf);
+                printf("send msg %s \n", msg_buf);
                 tcp_client_send_msg(msg_buf, os_strlen(msg_buf));
             }
             break;
         }
 #endif
         case E_GET_SUB_DEV_CMD:
-            os_printf("setting switch to %d \n", int_param);
+            printf("setting switch to %d \n", int_param);
             if (4 == sscanf(char_param, "%02x%02x%02x%02x", &int_mac[0], &int_mac[1], &int_mac[2], &int_mac[3]))
             {
-                os_printf("get mac %02x%02x%02x%02x\n", int_mac[0], int_mac[1], int_mac[2], int_mac[3]);
+                printf("get mac %02x%02x%02x%02x\n", int_mac[0], int_mac[1], int_mac[2], int_mac[3]);
                 c_mac[0] = (char)int_mac[0];
                 c_mac[1] = (char)int_mac[1];
                 c_mac[2] = (char)int_mac[2];
@@ -490,7 +503,7 @@ static void ICACHE_FLASH_ATTR json_msg_parse_fn(void * arg, E_JSON_CMD e_cmd, in
             }
             else
             {
-                os_printf("invalid mac %s \n", char_param);
+                printf("invalid mac %s \n", char_param);
             }
 
             int i;
@@ -499,7 +512,7 @@ static void ICACHE_FLASH_ATTR json_msg_parse_fn(void * arg, E_JSON_CMD e_cmd, in
             {
                 if (0 == os_memcmp(handle->dev_param[i].mac, c_mac, DEV_MAC_LEN))
                 {
-                    os_printf("find device %d \n", i);
+                    printf("find device %d \n", i);
                     index = i;
                     break;
                 }
@@ -511,14 +524,14 @@ static void ICACHE_FLASH_ATTR json_msg_parse_fn(void * arg, E_JSON_CMD e_cmd, in
             {
                 sprintf(msg_buf, GET_SUB_DEV_PARAM_RESP, handle->dev_param[i].mac,
                            req_id, 0, (1 == handle->dev_param[i].status) ? "yes" : "no", (1 == handle->dev_param[i].on_off) ? "on" : "off");
-                os_printf("send msg %s \n", msg_buf);
+                printf("send msg %s \n", msg_buf);
                 tcp_client_send_msg(msg_buf, os_strlen(msg_buf));
             }
             else
             {
                 sprintf(msg_buf, GET_SUB_DEV_PARAM_RESP, handle->dev_param[i].mac,
                            req_id, -1, "no", "off");
-                os_printf("send msg %s \n", msg_buf);
+                printf("send msg %s \n", msg_buf);
                 tcp_client_send_msg(msg_buf, os_strlen(msg_buf));
             }
             break;

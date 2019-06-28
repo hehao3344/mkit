@@ -83,10 +83,10 @@ void ICACHE_FLASH_ATTR rx1276_rf_send_packet(uint8 *rf_tran_buf, uint8 len)
     uint8 i;
 
     send_done = 0;
-
     lp_type_func.paSwitchCmdfunc(TX_OPEN);
 
     lora_set_op_mode(STDBY_MODE);
+
     write_buffer(REG_LR_HOPPERIOD, 0);
     write_buffer(REG_LR_IRQFLAGSMASK, IRQN_TXD_Value);
     write_buffer(REG_LR_PAYLOADLENGTH, len);
@@ -101,7 +101,6 @@ void ICACHE_FLASH_ATTR rx1276_rf_send_packet(uint8 *rf_tran_buf, uint8 len)
         lp_type_func.lpByteWritefunc(*rf_tran_buf);
         rf_tran_buf++;
     }
-
     lp_type_func.lpSwitchEnStatus(EN_CLOSE);
     write_buffer(REG_LR_DIOMAPPING1, 0x40);
     write_buffer(REG_LR_DIOMAPPING2, 0x00);
@@ -310,7 +309,9 @@ static uint8 ICACHE_FLASH_ATTR read_buffer(uint8 addr)
 static void ICACHE_FLASH_ATTR lora_set_op_mode(RFMODE_SET opMode)
 {
     uint8 op_mode_prev;
+    printf("%s %d \n", __FUNCTION__, __LINE__);
     op_mode_prev = read_buffer(REG_LR_OPMODE);
+    printf("%s %d \n", __FUNCTION__, __LINE__);
     op_mode_prev &= 0xF8;
     op_mode_prev |= (uint8)opMode;
 
