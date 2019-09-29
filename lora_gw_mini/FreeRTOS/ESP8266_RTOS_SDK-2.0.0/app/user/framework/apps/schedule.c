@@ -409,6 +409,21 @@ static void protocol_handle_data_cb(char * address, char cmd, char value)
     }
 }
 
+static int dns_to_ip(void)
+{
+    ip_addr_t addr;
+    if (0 == netconn_gethostbyname("www.iowin.cn", &addr))
+    {
+        printf("111get dns address successful = %s \n", inet_ntoa(addr));
+    }
+    else
+    {
+        printf("111get dns address failed \n");
+    }
+
+    return 0;
+}
+
 #if 0
 static void ICACHE_FLASH_ATTR json_msg_parse_fn(void * arg, E_JSON_CMD e_cmd, int req_id, int int_param, char * char_param)
 {

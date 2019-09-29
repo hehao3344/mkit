@@ -213,12 +213,12 @@ LOCAL void ICACHE_FLASH_ATTR key_5s_cb(KEY_PARAM * single_key)
 *******************************************************************************/
 LOCAL void ICACHE_FLASH_ATTR key_50ms_cb(KEY_PARAM * single_key)
 {
-    // os_timer_disarm(&single_key->key_50ms);
+    os_timer_disarm(&single_key->key_50ms);
     os_printf("short press \n");
     // high, then key is up
     if (1 == GPIO_INPUT_GET(GPIO_ID_PIN(single_key->gpio_id)))
     {
-        os_timer_disarm(&single_key->key_50ms);
+        os_timer_disarm(&single_key->key_5s);
         single_key->key_level = 1;
 
         // 按键

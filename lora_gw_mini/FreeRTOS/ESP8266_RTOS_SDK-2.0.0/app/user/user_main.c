@@ -23,7 +23,11 @@
  */
 
 #include "esp_common.h"
+#include "MQTTClient.h"
 #include "framework/apps/schedule.h"
+#include "framework/mqtt/mqtt_app.h"
+
+void user_conn_init(void);
 
 /******************************************************************************
  * FunctionName : user_rf_cal_sector_set
@@ -93,6 +97,72 @@ void task2(void * arg)
     vTaskDelete(NULL);
 }
 
+
+#include "mqtt_api.h"
+#include "lwip/sockets.h"
+#include "esp_common.h"
+void example_event_handle(void *pcontext, void *pclient, iotx_mqtt_event_msg_pt msg)
+{
+    printf("msg->event_type : %d", msg->event_type);
+}
+
+void example_message_arrive(void *pcontext, void *pclient, iotx_mqtt_event_msg_pt msg)
+{
+    iotx_mqtt_topic_info_t     *topic_info = (iotx_mqtt_topic_info_pt) msg->msg;
+
+    switch (msg->event_type) {
+        case IOTX_MQTT_EVENT_PUBLISH_RECEIVED:
+            /* print topic name and topic message */
+            printf("Message Arrived:");
+            printf("Topic  : %.*s", topic_info->topic_len, topic_info->ptopic);
+            printf("Payload: %.*s", topic_info->payload_len, topic_info->payload);
+            printf("\n");
+            break;
+        default:
+            break;
+    }
+}
+
+int example_publish(void *handle)
+{
+    int             res = 0;
+    const char     *fmt = "/%s/%s/user/get";
+    char           *topic = NULL;
+    int             topic_len = 0;
+    char           *payload = "{\"message\":\"hello!\"}";
+
+    topic_len = strlen(fmt) + strlen("a1RJaoarYEB") + strlen("6k32YxnJ8VYBuF44CtRW") + 1;
+    topic = malloc(topic_len);
+    if (topic == NULL) {
+        printf("memory not enough");
+        return -1;
+    }
+    memset(topic, 0, topic_len);
+    snprintf(topic, topic_len, fmt, "a1RJaoarYEB", "6k32YxnJ8VYBuF44CtRW");
+
+    res = IOT_MQTT_Publish_Simple(handle, topic, IOTX_MQTT_QOS0, payload, strlen(payload));
+    if (res < 0) {
+        printf("publish failed, res = %d", res);
+        free(topic);
+        return -1;
+    }
+
+    free(topic);
+    return 0;
+}
+
+
+void dns_found_callback_fn(const char *name, ip_addr_t *ipaddr, void *callback_arg)
+{
+    printf("get ip %s \n", inet_ntoa(ipaddr));
+}
+
+
+#define MQTT_CLIENT_THREAD_NAME         "mqtt_client_thread"
+#define MQTT_CLIENT_THREAD_STACK_WORDS  2048
+#define MQTT_CLIENT_THREAD_PRIO         8
+
+
 void wifi_event_handler_cb(System_Event_t *event)
 {
     if (event == NULL) {
@@ -102,7 +172,10 @@ void wifi_event_handler_cb(System_Event_t *event)
     switch (event->event_id) {
         case EVENT_STAMODE_GOT_IP:
             printf("sta got ip ,create task and free heap size is %d\n", system_get_free_heap_size());
-            schedule_create(0);
+            //mqtt_app_init();
+            //schedule_create(0);
+            user_conn_init();
+
             break;
 
         case EVENT_STAMODE_CONNECTED:
@@ -118,84 +191,193 @@ void wifi_event_handler_cb(System_Event_t *event)
     }
 }
 
+LOCAL xTaskHandle mqttc_client_handle;
+//#define MQTT_BROKER  "iot.eclipse.org"  /* MQTT Broker Address*/
+#define MQTT_BROKER  "10.101.70.32"     /* MQTT Broker Address*/
+#define MQTT_PORT    1883               /* MQTT Port*/
 
-void scan_done(void *arg,STATUS status)
+static void messageArrived(MessageData* data)
+{
+    printf("Message arrived: %s\n", data->message->payload);
+}
+
+static void mqtt_client_thread(void* pvParameters)
+{
+    printf("mqtt client thread starts\n");
+    MQTTClient client;
+    Network network;
+    unsigned char sendbuf[80], readbuf[80] = {0};
+    int rc = 0, count = 0;
+    MQTTPacket_connectData connectData = MQTTPacket_connectData_initializer;
+
+    pvParameters = 0;
+    NetworkInit(&network);
+    MQTTClientInit(&client, &network, 30000, sendbuf, sizeof(sendbuf), readbuf, sizeof(readbuf));
+
+    char* address = MQTT_BROKER;
+
+    if ((rc = NetworkConnect(&network, address, MQTT_PORT)) != 0) {
+        printf("Return code from network connect is %d\n", rc);
+    }
+
+#if defined(MQTT_TASK)
+
+    if ((rc = MQTTStartTask(&client)) != pdPASS) {
+        printf("Return code from start tasks is %d\n", rc);
+    } else {
+        printf("Use MQTTStartTask\n");
+    }
+
+#endif
+
+    connectData.MQTTVersion = 3;
+    connectData.clientID.cstring = "ESP8266_sample";
+
+    if ((rc = MQTTConnect(&client, &connectData)) != 0) {
+        printf("Return code from MQTT connect is %d\n", rc);
+    } else {
+        printf("MQTT Connected\n");
+    }
+
+    if ((rc = MQTTSubscribe(&client, " /cc50e33528de/set_switch", 2, messageArrived)) != 0) {
+        printf("Return code from MQTT subscribe is %d\n", rc);
+    } else {
+        printf("MQTT subscribe to topic \"ESP8266/sample/sub\"\n");
+    }
+
+    while (++count) {
+        MQTTMessage message;
+        char payload[30];
+
+        message.qos = QOS2;
+        message.retained = 0;
+        message.payload = payload;
+        sprintf(payload, "message number %d", count);
+        message.payloadlen = strlen(payload);
+
+        //if ((rc = MQTTPublish(&client, "ESP8266/sample/pub", &message)) != 0) {
+        if ((rc = MQTTPublish(&client, "/cc50e33528de/heart_beat", &message)) != 0) {
+            printf("Return code from MQTT publish is %d\n", rc);
+        } else {
+            printf("MQTT publish topic \"ESP8266/sample/pub\", message number is %d\n", count);
+        }
+
+        vTaskDelay(1000 / portTICK_RATE_MS);  //send every 1 seconds
+    }
+
+    printf("mqtt_client_thread going to be deleted\n");
+    vTaskDelete(NULL);
+    return;
+}
+
+
+char DEMO_PRODUCT_KEY[IOTX_PRODUCT_KEY_LEN + 1] = {0};
+char DEMO_DEVICE_NAME[IOTX_DEVICE_NAME_LEN + 1] = {0};
+char DEMO_DEVICE_SECRET[IOTX_DEVICE_SECRET_LEN + 1] = {0};
+
+void user_conn_init(void)
 {
 
-     unsigned char ssid[33];
-      char temp[128];
-      struct station_config stationConf;
-      if (status == OK)
-       {
-         struct bss_info *bss_link = (struct bss_info *)arg;
-         bss_link = bss_link->next.stqe_next;//ignore first
+    HAL_GetProductKey(DEMO_PRODUCT_KEY);
+            HAL_GetDeviceName(DEMO_DEVICE_NAME);
+            HAL_GetDeviceSecret(DEMO_DEVICE_SECRET);
 
-         while (bss_link != NULL)
-         {
-           os_memset(ssid, 0, 33);
-           if (os_strlen(bss_link->ssid) <= 32)
-           {
-             os_memcpy(ssid, bss_link->ssid, os_strlen(bss_link->ssid));
-           }
-           else
-           {
-             os_memcpy(ssid, bss_link->ssid, 32);
-           }
-           os_sprintf(temp,"+CWLAP:(%d,\"%s\",%d,\""MACSTR"\",%d)\r\n",
-                      bss_link->authmode, ssid, bss_link->rssi,
-                      MAC2STR(bss_link->bssid),bss_link->channel);
-            printf("%s",temp);
-           bss_link = bss_link->next.stqe_next;
-         }
+            iotx_mqtt_param_t mqtt_params;
+            memset(&mqtt_params, 0x0, sizeof(mqtt_params));
 
-        os_memcpy(&stationConf.ssid, "XINGLUO_034242", 32);
-        os_memcpy(&stationConf.password, "12345678", 64);
-        wifi_station_set_config_current(&stationConf);
-        wifi_station_connect();
-       }
-       else
-       {
-            printf("%s","Error");
-       }
+            mqtt_params.host = "a1RJaoarYEB.iot-as-mqtt.cn-shanghai.aliyuncs.com";
+            mqtt_params.handle_event.h_fp = example_event_handle;
+
+            void * iot_mqtt_handle = IOT_MQTT_Construct(&mqtt_params);
+            if (NULL != iot_mqtt_handle)
+            {
+                printf("IOT_MQTT_Construct successful \n");
+            }
+            else
+            {
+                printf("IOT_MQTT_Construct failed \n");
+            }
+
+
+            int res = 0;
+            const char *fmt = "/%s/%s/get";
+            char *topic = NULL;
+            int topic_len = 0;
+
+            topic_len = strlen(fmt) + strlen("a1RJaoarYEB") + strlen("6k32YxnJ8VYBuF44CtRW") + 1;
+            topic = malloc(topic_len);
+            if (topic == NULL) {
+                printf("memory not enough");
+                return ;
+            }
+            memset(topic, 0, topic_len);
+            snprintf(topic, topic_len, fmt, "a1RJaoarYEB", "6k32YxnJ8VYBuF44CtRW");
+
+            res = IOT_MQTT_Subscribe(iot_mqtt_handle, topic, IOTX_MQTT_QOS0, example_message_arrive, NULL);
+            if (res < 0) {
+                printf("subscribe failed");
+                free(topic);
+                return ;
+            }
+            free(topic);
+            int loop_cnt = 0;
+            while (1) {
+                if (0 == loop_cnt % 20) {
+                    //example_publish(iot_mqtt_handle);
+                }
+
+                IOT_MQTT_Yield(iot_mqtt_handle, 200);
+
+                loop_cnt += 1;
+            }
+
+
+#if 0
+    int ret;
+    ret = xTaskCreate(mqtt_client_thread,
+                      MQTT_CLIENT_THREAD_NAME,
+                      MQTT_CLIENT_THREAD_STACK_WORDS,
+                      NULL,
+                      MQTT_CLIENT_THREAD_PRIO,
+                      &mqttc_client_handle);
+
+    if (ret != pdPASS)  {
+        printf("mqtt create client thread %s failed\n", MQTT_CLIENT_THREAD_NAME);
+    }
+#endif
 }
+
 
 void user_init(void)
 {
     uart_init_new();
-    xTaskCreate(task2, "tsk2", 256, NULL, 2, NULL);
-
-
-
-
-
-    wifi_station_scan(NULL,scan_done);
-
+    //user_conn_init();
     printf("SDK version:%s == %d \n", system_get_sdk_version(), portTICK_RATE_MS);
-
-    schedule_create(0);
-    wifi_station_connect();
-
-    return ;
 
     /* 1 station 2 softap 3 station_ap */
     wifi_set_opmode(STATION_MODE);
-
+    printf("%s %d called \n", __FUNCTION__, __LINE__);
     struct station_config config;
     bzero(&config, sizeof(struct station_config));
+
+    config.bssid_set = 0;
+
     sprintf(config.ssid, "XINGLUO_034242");
     sprintf(config.password, "12345678");
+    printf("%s %d called \n", __FUNCTION__, __LINE__);
     wifi_station_set_config(&config);
-
-    //wifi_set_event_handler_cb(wifi_event_handler_cb);
-
+    printf("%s %d called \n", __FUNCTION__, __LINE__);
+    wifi_set_event_handler_cb(wifi_event_handler_cb);
+    printf("%s %d called \n", __FUNCTION__, __LINE__);
     wifi_station_connect();
 
+    printf("waitting for connect ... \n");
 
-    //while(1)
-    //{
-    //    vTaskDelay(1000/portTICK_RATE_MS);
-    //    printf("SDK version:%s\n", system_get_sdk_version());
-    //}
+    while(1)
+    {
+        vTaskDelay(1000/portTICK_RATE_MS);
+        printf("SDK version:%s\n", system_get_sdk_version());
+    }
 
 }
 

@@ -58,6 +58,7 @@ COMPONENTS_eagle.app.v6 = \
 	user/framework/device/libdevice.a	\
 	user/framework/network/libnetwork.a	\
 	user/framework/tcp/libtcp.a	\
+	user/framework/mqtt/libmqtt_app.a	\
 	user/framework/protocol/libprotocol.a \
 	driver/libdriver.a	\
 	user/libuser.a
@@ -90,8 +91,10 @@ LINKFLAGS_eagle.app.v6 = \
 	-lsmartconfig	\
 	-lspiffs	\
 	-lssl	\
+	-lmqtt	\
 	-lwpa	\
 	-lwps		\
+	-liot_sdk \
 	$(DEP_LIBS_eagle.app.v6)					\
 	-Wl,--end-group
 

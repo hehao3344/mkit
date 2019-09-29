@@ -96,6 +96,11 @@ int sock_get_addr(const char * ip, int port, struct sockaddr_in *addr)
     return 0;
 }
 
+void dns_found_callback_fn(const char *name, ip_addr_t *ipaddr, void *callback_arg)
+{
+    printf("get ip %s \n", inet_ntoa(ipaddr));
+}
+
 boolean ICACHE_FLASH_ATTR tcp_client_create(void)
 {
     TCP_CLIENT_OBJECT *handle = instance();
@@ -106,13 +111,30 @@ boolean ICACHE_FLASH_ATTR tcp_client_create(void)
     }
 
     lwip_socket_init();
+
+    dns_init();
+
+    ip_addr_t addr;
+
+    if (0 == dns_gethostbyname("www.iowin.cn", &addr, dns_found_callback_fn, NULL))
+    {
+        printf("get dns address successful \n");
+    }
+    else
+    {
+        printf("get dns address failed \n");
+    }
+
+    return 0;
+
+#if 0
     int sock_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (sock_fd <= 0)
     {
         printf("socket failed \n");
         return -1;
     }
-    struct sockaddr_in addr;
+    // struct sockaddr_in addr;
     sock_get_addr("47.105.47.213", 8010, &addr);
 
     if (-1 == connect(sock_fd, (struct sockaddr *)&addr, sizeof(struct sockaddr)))
@@ -128,7 +150,7 @@ boolean ICACHE_FLASH_ATTR tcp_client_create(void)
     printf("send %d bytes \n", ret);
 
     close(sock_fd);
-
+#endif
     return 0;
 
 

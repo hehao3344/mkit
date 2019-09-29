@@ -8,6 +8,18 @@ extern "C"
 {
 #endif
 
+// mqtt
+#define MQTT_REGISTER_MSG "{\
+\"cmd\":\"register\",\
+\"version\":\"v2.0.0\"\
+}"
+
+#define MQTT_HEART_BEAT "{ \
+\"cmd\":\"heart_beat\" \
+}"
+
+
+
 #define DEV_REGISTER_MSG  "{\
 \"method\":\"up_msg\",\
 \"cc_uuid\":\"%s%s\",\
